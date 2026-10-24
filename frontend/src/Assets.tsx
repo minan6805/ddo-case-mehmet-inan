@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { APIError, request, type User } from './api';
 export type Asset = { id: number; code: string; name: string; kind: string; state: string; owner_id: number | null; owner_name: string; version: number };
 export type Impact = { graph_version: number; items: (Asset & { distance: number; path: number[] })[]; edges: { provider_id: number; dependent_id: number }[] };
@@ -6,6 +6,7 @@ const kinds: Record<string, string> = { server: 'Sunucu', service: 'Servis', app
 const states: Record<string, string> = { active: 'Aktif', maintenance: 'Bakımda', retired: 'Kullanımdan kaldırıldı' };
 type Detail = { asset: Asset; providers: Asset[]; dependents: Asset[] };
 export function ImpactView({ impact }: { impact: Impact }) {
+  const arrowId = `impact-arrow-${useId().replace(/:/g, '')}`;
   const nodes = impact.items.slice(0, 50);
   const positions = new Map<number, { x: number; y: number }>();
   const counts = new Map<number, number>();
@@ -15,8 +16,8 @@ export function ImpactView({ impact }: { impact: Impact }) {
   return <div className="impact-result"><p><strong>{impact.items.length} varlık etkilenebilir</strong> · kök dahil · graf sürümü {impact.graph_version}</p>
     <p className="muted">Oklar sağlayıcıdan ona bağımlı varlığa gider. Bu liste olası yayılımı gösterir; kesin kesinti tahmini değildir.</p>
     <div className="graph-scroll"><svg viewBox={`0 0 ${width} ${height}`} style={{ minWidth: width, height }} role="img" aria-label="Varlık bağımlılık etki grafı">
-      <defs><marker id="impact-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#51788a" /></marker></defs>
-      {impact.edges.map((e) => { const a = positions.get(e.provider_id), b = positions.get(e.dependent_id); return a && b ? <path key={`${e.provider_id}:${e.dependent_id}`} d={`M ${a.x + 195} ${a.y + 28} C ${a.x + 220} ${a.y + 28}, ${b.x - 25} ${b.y + 28}, ${b.x} ${b.y + 28}`} stroke="#51788a" fill="none" strokeWidth="2" markerEnd="url(#impact-arrow)" /> : null; })}
+      <defs><marker id={arrowId} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#51788a" /></marker></defs>
+      {impact.edges.map((e) => { const a = positions.get(e.provider_id), b = positions.get(e.dependent_id); return a && b ? <path key={`${e.provider_id}:${e.dependent_id}`} d={`M ${a.x + 195} ${a.y + 28} C ${a.x + 220} ${a.y + 28}, ${b.x - 25} ${b.y + 28}, ${b.x} ${b.y + 28}`} stroke="#51788a" fill="none" strokeWidth="2" markerEnd={`url(#${arrowId})`} /> : null; })}
       {nodes.map((node) => { const p = positions.get(node.id)!; return <g key={node.id}><title>{node.name} · {states[node.state]}</title><rect x={p.x} y={p.y} width="195" height="58" rx="8" fill={node.distance === 0 ? '#d8eee3' : '#edf3f8'} stroke="#8bb29c" /><text x={p.x + 10} y={p.y + 23} fontSize="12" fill="#172b4d">{node.code.slice(0, 24)}</text><text x={p.x + 10} y={p.y + 43} fontSize="11" fill="#526175">{node.name.slice(0, 25)}</text></g>; })}
     </svg></div>
     {impact.items.length > 50 && <p className="muted">Graf ilk 50 varlığı gösterir; tam etki listesi aşağıdadır.</p>}

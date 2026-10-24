@@ -1,6 +1,6 @@
 # DDO Projesi — Mehmet İnan
 
-DDO IT yardım masası projesi. **Geliştirme aşamasında: servis bağlantısı, giriş/çıkış, rol kontrolü, temel talep akışı, iş takvimli SLA, otomatik atama motoru ve görünürlük kontrollü talep mesajları ve T-3 e-posta/birleştirme/bölme akışı.**
+DDO IT yardım masası projesi. **Geliştirme aşamasında: servis bağlantısı, giriş/çıkış, rol kontrolü, temel talep akışı, iş takvimli SLA, otomatik atama motoru ve görünürlük kontrollü talep mesajları T-3 e-posta/birleştirme/bölme, varlık envanteri ve T-4 değişiklik/onay akışı.**
 
 ## Kurulum
 
@@ -70,11 +70,11 @@ Talep erişimi: her rol kendi adına talep açabilir. Çalışan ve varlık yön
 
 Durum akışı: açık → işlemde → yanıt bekleniyor → işlemde → çözüldü → kapalı. Çözülen talep işlemde durumuna dönebilir; kapalı talep tekrar açılmaz. Paylaşılan mesajlar ve destek iç notları hazır. Talep silme ve açıklama düzenleme henüz yok.
 
-**Henüz yok:** değişiklik akışı, bilgi bankası, raporlar, günlük 800 taleplik genel simülatör, CI/lint ve OpenAPI. Sınırlı e-posta simülatörü hazır. Rol kontrolünün altyapısı ve örnek uç hazır; gelecekteki her işlev kendi erişim kurallarını uygulamalı.
+**Henüz yok:** bilgi bankası, raporlar, günlük 800 taleplik genel simülatör, CI/lint ve OpenAPI. Sınırlı e-posta simülatörü hazır. Rol kontrolünün altyapısı ve örnek uç hazır; gelecekteki her işlev kendi erişim kurallarını uygulamalı.
 
 Oturumlar sabit sürelidir; otomatik yenileme ve periyodik süresi dolmuş oturum temizliği henüz yok. Giriş hızı sınırlaması, parola değiştirme ve hesap yönetimi henüz yok. Audit trigger'ları normal UPDATE/DELETE/TRUNCATE işlemlerini reddeder; veritabanı yöneticisinin trigger'ları devre dışı bırakmasına karşı koruma iddiası yok.
 
-24 Ekim 2026 doğrulaması: Docker imajları derlendi, üç ana servis healthy. Go birim testleri `-race`, `go vet` ve TypeScript/Vite derlemesi başarılı. Gerçek PostgreSQL'de 11 kimlik + 24 talep/yorum + 11 SLA + 16 atama + 11 e-posta + 10 birleştirme/bölme = **83 entegrasyon senaryosu PASS**. Canlı API'de HEALTH/WEB/AUTH/RBAC/F-1/F-2/F-3/T-1/T-2/T-3/COMMENTS/EMAIL/THREADS kontrolleri başarılı. Chromium ile talep ve SLA kabul/bekleme/devam akışı, yönetici takvim/hedef kaydı, 390px mobil düzen, iç notların çalışandan gizlenmesi, paylaşılan yanıtlar, izinle otomatik devir, atama geçmişi ve çıkış doğrulandı. Tam proje doğrulaması kalan F/T görevleri nedeniyle henüz geçmez.
+24 Ekim 2026 doğrulaması: Docker imajları derlendi, üç ana servis healthy. Go birim testleri `-race`, `go vet` ve TypeScript/Vite derlemesi başarılı. Gerçek PostgreSQL'de 11 kimlik + 24 talep/yorum + 11 SLA + 16 atama + 11 e-posta + 10 birleştirme/bölme + 10 varlık + 15 değişiklik = **108 entegrasyon senaryosu PASS**. Canlı API'de HEALTH/WEB/AUTH/RBAC/F-1/F-2/F-3/F-5/F-6/T-1/T-2/T-3/T-4/COMMENTS/EMAIL/THREADS kontrolleri başarılı. Chromium ile talep ve SLA kabul/bekleme/devam akışı, yönetici takvim/hedef kaydı, 390px mobil düzen, iç notların çalışandan gizlenmesi, paylaşılan yanıtlar, izinle otomatik devir, atama geçmişi, döngülü varlık grafı, bağımsız CAB, çakışma/eski graf reddi ve çıkış doğrulandı. Tam proje doğrulaması kalan F/T görevleri nedeniyle henüz geçmez.
 
 Kısa k6 ölçümü: 10 VU, 20 saniye; SLA preview ucunda 3.930 hesaplama isteği, HTTP hata %0, p95 0,62544 ms. Bu küçük yerel hesaplama senaryosudur; tüm uygulama veya takvim yeniden hesaplama kapasitesini göstermez. Kapsam ve sonuç: [docs/LOAD-RESULTS.md](docs/LOAD-RESULTS.md).
 
@@ -96,8 +96,14 @@ Lider/admin ekranındaki “E-posta simülatörü” kayıtlı kullanıcı adın
 
 Talep detayında lider/admin “Talebi birleştir veya böl” alanından aynı kişiye ait kayıtları birleştirir veya seçilen mesajları yeni talebe ayırır. İç notlar gizli kalır; ekler korunur. Bölmede yeni SLA başlar; birleştirmede hedefin süresi korunur. İşlem geçmişi detayda görünür.
 
-`make verify-t3` API ve gerçek PostgreSQL kanıtını çalıştırır. Teknik kurallar, sınırlar ve simülatör: [docs/EMAIL.md](docs/EMAIL.md). Genel doğrulamada artık T-3 PASS; kalan F-4…F-7 ve T-4 nedeniyle tüm proje henüz hazır değildir.
+`make verify-t3` API ve gerçek PostgreSQL kanıtını çalıştırır. Teknik kurallar, sınırlar ve simülatör: [docs/EMAIL.md](docs/EMAIL.md). Genel doğrulamada artık T-3 PASS; kalan F-4 ve F-7 ile teslim hazırlıkları nedeniyle tüm proje henüz hazır değildir.
 
 ## Varlık envanteri ve etki grafı
 
 Uzman/lider/varlık yöneticisi/admin “Varlıklar” sekmesinden envanteri ve aşağı yöndeki arıza etkisini görür. Varlık yöneticisi/admin kod, ad, tür, durum, sorumlu ve sağlayıcı → bağımlı bağlantılarını düzenler. Döngüler sonlu ve tekrarsız hesaplanır; graf ve örnek yollar gösterilir. `make verify-assets` API, `make prove-assets` gerçek PostgreSQL kanıtıdır. Kurallar ve sınırlar: [docs/ASSETS.md](docs/ASSETS.md).
+
+## Değişiklik ve CAB onayı (F-6 / T-4)
+
+“Değişiklikler” sekmesinden zaman penceresi, uygulama/geri dönüş planı, risk ve kök varlıklar seçilir. Gönderimde graf etkisi kaydedilir. Plan sahibinden farklı bir lider/admin CAB kararı verir. Ortak aşağı varlıkları etkileyen, zamanları örtüşen iki plan birlikte onaylanamaz. Graf değişirse yeniden değerlendirme gerekir. Onaylı iş yalnız plan penceresi içinde başlatılır; sonuç ve karar geçmişi kaydedilir.
+
+`make verify-changes` canlı API, `make verify-t4` API + PostgreSQL, `make prove-t4` izole PostgreSQL/graf kanıtıdır. Kurallar ve sınırlar: [docs/CHANGES.md](docs/CHANGES.md). F-5/F-6 ve dört zor görev artık uygulanmış durumdadır. Bilgi bankası, raporlar, günlük 800 taleplik genel simülatör, CI/lint, OpenAPI, indeks ölçümleri ve son teslim kontrolleri hâlâ kalır.

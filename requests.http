@@ -239,3 +239,43 @@ GET {{baseUrl}}/assets/1/impact
 
 ### Sorumlu kişi seçimi — varlık yöneticisi/admin
 GET {{baseUrl}}/assets/owners?limit=20
+
+### Değişiklik listesi — uzman/lider/varlık yöneticisi/admin
+GET {{baseUrl}}/changes?limit=20
+
+### Taslak aç — gelecekteki pencere ve gerçek kök varlıkları seç
+POST {{baseUrl}}/changes
+Content-Type: application/json
+Idempotency-Key: change-demo-1
+
+{"title":"Sunucu güncellemesi","description":"Yeni sürüm uygulanacak.","rollback_plan":"Eski sürüm geri yüklenecek.","risk":"normal","starts_at":"2026-10-25T20:00:00+03:00","ends_at":"2026-10-25T21:00:00+03:00","root_ids":[1]}
+
+### Plan ve CAB'a sunulan etki
+GET {{baseUrl}}/changes/1
+
+### Güncel etki/çakışma önizlemesi — rezervasyon yapmaz
+GET {{baseUrl}}/changes/1/impact
+
+### Taslağı düzenle — yalnız sahibi/admin; güncel version
+PUT {{baseUrl}}/changes/1
+Content-Type: application/json
+
+{"title":"Sunucu güncellemesi","description":"Yeni sürüm uygulanacak.","rollback_plan":"Eski sürüm geri yüklenecek.","risk":"normal","starts_at":"2026-10-25T20:00:00+03:00","ends_at":"2026-10-25T21:00:00+03:00","root_ids":[1],"version":1}
+
+### Gönder — plan sahibi/admin, version güncel olmalı
+POST {{baseUrl}}/changes/1/actions
+Content-Type: application/json
+Idempotency-Key: change-submit-1
+
+{"action":"submit","note":"Etki ve geri dönüş planı hazır.","version":2}
+
+### Bağımsız CAB — farklı lider/admin hesabıyla
+POST {{baseUrl}}/changes/1/actions
+Content-Type: application/json
+Idempotency-Key: change-approve-1
+
+{"action":"approve","note":"Etki ve pencere incelendi.","version":3}
+
+### Diğer actions: request_changes, reject, revise, cancel, start, complete, fail
+### start yalnız pencere içinde; her action için yeni anahtar ve güncel version gerekir.
+GET {{baseUrl}}/changes/1/history?limit=20

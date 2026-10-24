@@ -10,6 +10,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -45,6 +46,8 @@ parser.add_argument('--email', action='store_true')
 parser.add_argument('--threads', action='store_true')
 parser.add_argument('--t3', action='store_true')
 parser.add_argument('--assets', action='store_true')
+parser.add_argument('--changes', action='store_true')
+parser.add_argument('--t4', action='store_true')
 args = parser.parse_args()
 failed = False
 base = f"http://127.0.0.1:{setting('FRONTEND_PORT', '3001')}"
@@ -666,6 +669,114 @@ def verify_assets():
                 pass
 
 
+def verify_changes():
+    participants, plans, cis = [], [], []
+    try:
+        for name in ['varlik', 'lider', 'calisan']:
+            opener, _ = client()
+            expect(call(opener, '/auth/login', 'POST', {'email': name + '@destekmasa.local', 'password': password})[0], 200, 'Değişiklik testi girişi')
+            participants.append(opener)
+        owner, cab, employee = participants
+        expect(call(employee, '/changes')[0], 403, 'Çalışanın plan erişimi')
+        run = uuid.uuid4().hex[:10].upper()
+        for i in range(3):
+            status, result = call(owner, '/assets', 'POST', {'code': f'CAB-{run}-{i}', 'name': '[CAB doğrulama] Varlık', 'kind': 'server', 'state': 'active'}, {'Idempotency-Key': str(uuid.uuid4())})
+            expect(status, 201, 'CAB varlığı')
+            cis.append(result['asset'])
+        a, b, c = [v['id'] for v in cis]
+        for provider, dependent in [(a, c), (b, c), (c, a)]:
+            expect(call(owner, f'/assets/{provider}/dependencies/{dependent}', 'PUT')[0], 200, 'Ortak bağımlılık')
+        start = datetime.now(timezone.utc) + timedelta(days=200 + int(run[:2], 16) % 100, minutes=int(run[2:4], 16))
+        body = {'title': '[CAB doğrulama] Bakım', 'description': 'Uygulama güncellenecek.', 'rollback_plan': 'Önceki sürüme dönülecek.', 'risk': 'normal', 'starts_at': start.isoformat(), 'ends_at': (start + timedelta(hours=1)).isoformat(), 'root_ids': [a]}
+        def create_plan(roots):
+            input_body = dict(body, root_ids=roots)
+            key = {'Idempotency-Key': str(uuid.uuid4())}
+            status, result = call(owner, '/changes', 'POST', input_body, key)
+            expect(status, 201, 'Değişiklik taslağı')
+            plans.append(result['change']['id'])
+            status, replay = call(owner, '/changes', 'POST', input_body, key)
+            expect(status, 201, 'Taslak tekrarı')
+            if replay['change']['id'] != result['change']['id']:
+                raise AssertionError('Tekrar istek ikinci plan açtı')
+            return result['change']
+        def act(opener, plan, action, expected=200):
+            status, result = call(opener, f"/changes/{plan['id']}/actions", 'POST', {'action': action, 'note': 'Otomatik kabul testi', 'version': plan['version']}, {'Idempotency-Key': str(uuid.uuid4())})
+            expect(status, expected, action)
+            return result['change'] if status == 200 else result
+        first, second = create_plan([a]), create_plan([b])
+        first = act(owner, first, 'submit')
+        second = act(owner, second, 'submit')
+        act(owner, first, 'approve', 403)
+        first = act(cab, first, 'approve')
+        conflict = act(cab, second, 'approve', 409)
+        if conflict['error']['code'] != 'CHANGE_OVERLAP' or conflict['conflicts'][0]['id'] != first['id']:
+            raise AssertionError('Ortak aşağı varlık çakışması bulunmadı')
+        act(owner, first, 'start', 409)  # Future window: execution must not start early.
+        first = act(owner, first, 'cancel')
+        second = act(cab, second, 'approve')
+        second = act(owner, second, 'cancel')
+        third = act(owner, create_plan([a]), 'submit')
+        asset = cis[0]
+        edit = {k: asset[k] for k in ['code', 'name', 'kind', 'state', 'owner_id', 'version']}
+        edit['name'] = '[CAB doğrulama] Güncel graf'
+        expect(call(owner, f'/assets/{a}', 'PUT', edit)[0], 200, 'Graf sürümünü değiştir')
+        stale = act(cab, third, 'approve', 409)
+        if stale['error']['code'] != 'STALE_GRAPH':
+            raise AssertionError('Eski grafla CAB onayı kabul edildi')
+        third = act(owner, third, 'revise')
+        third = act(owner, third, 'submit')
+        third = act(cab, third, 'approve')
+        third = act(owner, third, 'cancel')
+        status, history = call(cab, f"/changes/{third['id']}/history?limit=100")
+        expect(status, 200, 'CAB geçmişi')
+        if not {'create', 'submit', 'revise', 'approve', 'cancel'}.issubset({e['action'] for e in history['items']}):
+            raise AssertionError('Karar geçmişi eksik')
+    finally:
+        if participants:
+            owner = participants[0]
+            for identifier in plans:
+                status, result = call(owner, f'/changes/{identifier}')
+                if status == 200:
+                    plan = result['change']
+                    if plan['status'] in ['draft', 'submitted', 'approved', 'implementing']:
+                        action = 'fail' if plan['status'] == 'implementing' else 'cancel'
+                        expect(call(owner, f'/changes/{identifier}/actions', 'POST', {'action': action, 'version': plan['version'], 'note': 'Doğrulama sonrası temizlik'}, {'Idempotency-Key': str(uuid.uuid4())})[0], 200, 'Plan temizliği')
+            for asset in cis:
+                for other in cis:
+                    if asset['id'] != other['id']:
+                        call(owner, f"/assets/{asset['id']}/dependencies/{other['id']}", 'DELETE')
+                status, result = call(owner, f"/assets/{asset['id']}")
+                if status == 200:
+                    edit = {k: result['asset'][k] for k in ['code', 'name', 'kind', 'state', 'owner_id', 'version']}
+                    edit['state'] = 'retired'
+                    expect(call(owner, f"/assets/{asset['id']}", 'PUT', edit)[0], 200, 'CAB varlığı temizliği')
+        for opener in participants:
+            try:
+                call(opener, '/auth/logout', 'POST')
+            except Exception:
+                pass
+
+
+def verify_t4_proof():
+    path = Path('/tmp/destekmasa-assignment-proof.log') if args.full else Path('/tmp/ddo-t4-proof.log')
+    if not args.full:
+        with path.open('w') as output:
+            result = subprocess.run(['make', 'prove-t4'], stdout=output, stderr=subprocess.STDOUT, timeout=600)
+        if result.returncode != 0:
+            raise AssertionError(f'T-4 PostgreSQL kanıtı başarısız: {path}')
+    text = path.read_text()
+    for scenario in [
+        'TestReachableMatchesIndependentFloydWarshall',
+        'TestPostgresAssetGraph/cycles_diamonds_and_direction',
+        'TestPostgresChangeWorkflow/two_concurrent_http_approvals_only_one_reservation',
+        'TestPostgresChangeWorkflow/shared_downstream_asset_conflicts_across_distinct_roots',
+        'TestPostgresChangeWorkflow/graph_change_requires_new_review_before_approval',
+        'TestPostgresChangeWorkflow/failed_approval_audit_rolls_back_reservation',
+    ]:
+        if f'--- PASS: {scenario}' not in text:
+            raise AssertionError(f'T-4 senaryosu PASS vermedi: {scenario}; {path}')
+
+
 if args.auth or args.full:
     check('AUTH', verify_auth)
     check('RBAC', verify_rbac)
@@ -687,8 +798,12 @@ if args.t3 or args.full:
     check('T-3', verify_t3_proof)
 if args.assets or args.full:
     check('F-5', verify_assets)
+if args.changes or args.full:
+    check('F-6', verify_changes)
+if args.t4 or args.full:
+    check('T-4', verify_t4_proof)
 if args.full:
-    for name in ['F-4', 'F-6', 'F-7', 'T-4']:
+    for name in ['F-4', 'F-7']:
         print(f'{name:<16} FAIL     Henüz uygulanmadı; kabul testi bekleniyor')
         failed = True
 sys.exit(1 if failed else 0)

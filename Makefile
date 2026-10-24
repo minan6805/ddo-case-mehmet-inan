@@ -1,4 +1,4 @@
-.PHONY: up down logs smoke verify test test-integration verify-auth verify-tickets verify-sla prove-sla verify-assignment prove-assignment verify-comments verify-email verify-t3 prove-t3 simulate-email prove-email load reset-demo verify-assets prove-assets
+.PHONY: up down logs smoke verify test test-integration verify-auth verify-tickets verify-sla prove-sla verify-assignment prove-assignment verify-comments verify-email verify-t3 prove-t3 simulate-email prove-email load reset-demo verify-assets prove-assets verify-changes verify-t4 prove-t4
 
 up:
 	docker compose up --build -d --wait
@@ -72,3 +72,12 @@ verify-assets:
 
 prove-assets:
 	TEST_PACKAGE=./internal/assets TEST_RUN=TestPostgresAssetGraph sh scripts/test-integration.sh
+
+verify-changes:
+	python3 scripts/verify.py --changes
+
+verify-t4:
+	python3 scripts/verify.py --assets --changes --t4
+
+prove-t4:
+	TEST_RUN='TestPostgresAssetGraph|TestPostgresChangeWorkflow|TestReachable' sh scripts/test-integration.sh

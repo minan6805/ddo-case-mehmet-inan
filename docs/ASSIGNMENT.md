@@ -72,4 +72,4 @@ Canlı F-3 senaryosu profil değerlerini değiştirmeden liderle kaydeder; sür�
 --- PASS: TestPostgresAssignmentEngine/capacity_reduction_moves_excess_work (0.02s)
 ```
 
-Chromium'da otomatik atanan talep, uzmanı izne alma, devrin geçmişte görünmesi, izni geri kaldırma ve mobil profil kontrolleri PASS. Tarayıcı testi profili izin dışına geri getirir; gerçek devir olayları geçmişte kalır. F-3/T-2, tam doğrulamada PASS; T-3 de sonraki e-posta adımında tamamlandı; F-4…F-7/T-4 henüz uygulanmadı.
+Chromium'da otomatik atanan talep, uzmanı izne alma, devrin geçmişte görünmesi, izni geri kaldırma ve mobil profil kontrolleri PASS. Tarayıcı testi profili izin dışına geri getirir; gerçek devir olayları geçmişte kalır. F-3/T-2, tam doğrulamada PASS; T-3 e-posta ve T-4 varlık/değişiklik adımları da daha sonra tamamlandı; F-4 ve F-7 henüz uygulanmadı.
