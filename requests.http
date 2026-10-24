@@ -208,3 +208,34 @@ Idempotency-Key: split-demo-1
 
 ### Sahiplik kontrollü işlem geçmişi
 GET {{baseUrl}}/tickets/2/operations?limit=20
+
+### Varlık envanteri — uzman/lider/varlık yöneticisi/admin
+GET {{baseUrl}}/assets?limit=20
+
+### Varlık oluştur — varlık yöneticisi/admin
+POST {{baseUrl}}/assets
+Content-Type: application/json
+Idempotency-Key: asset-demo-1
+
+{"code":"SRV-001","name":"Uygulama sunucusu","kind":"server","state":"active","owner_id":null}
+
+### Varlık detayında sağlayıcılar ve bağımlılar
+GET {{baseUrl}}/assets/1
+
+### Varlık düzenle — güncel version gerekir
+PUT {{baseUrl}}/assets/1
+Content-Type: application/json
+
+{"code":"SRV-001","name":"Uygulama sunucusu","kind":"server","state":"maintenance","owner_id":null,"version":1}
+
+### 1 numara sağlayıcı, 2 numara ona bağımlı
+PUT {{baseUrl}}/assets/1/dependencies/2
+
+### Bağımlılığı kaldır
+DELETE {{baseUrl}}/assets/1/dependencies/2
+
+### Arıza etkisi — kök ve aşağı yöndeki varlıklar
+GET {{baseUrl}}/assets/1/impact
+
+### Sorumlu kişi seçimi — varlık yöneticisi/admin
+GET {{baseUrl}}/assets/owners?limit=20

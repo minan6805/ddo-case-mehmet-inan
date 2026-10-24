@@ -55,6 +55,7 @@ type Services struct {
 	Comments       CommentService
 	Email          EmailService
 	Threads        ThreadService
+	Assets         AssetService
 }
 
 func newRouter(db Pinger, service Authenticator, options AuthOptions, ticketService TicketService, engine SLAService) http.Handler {
@@ -65,6 +66,9 @@ func NewServicesRouter(services Services) http.Handler {
 	mux := http.NewServeMux()
 	if service != nil {
 		registerAuth(mux, service, options)
+		if services.Assets != nil {
+			registerAssets(mux, service, services.Assets)
+		}
 		if services.Threads != nil {
 			registerThreads(mux, service, services.Threads)
 		}

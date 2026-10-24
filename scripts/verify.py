@@ -44,6 +44,7 @@ parser.add_argument('--comments', action='store_true')
 parser.add_argument('--email', action='store_true')
 parser.add_argument('--threads', action='store_true')
 parser.add_argument('--t3', action='store_true')
+parser.add_argument('--assets', action='store_true')
 args = parser.parse_args()
 failed = False
 base = f"http://127.0.0.1:{setting('FRONTEND_PORT', '3001')}"
@@ -608,6 +609,63 @@ def verify_t3_proof():
             raise AssertionError(f'T-3 senaryosu PASS vermedi: {scenario}; {path}')
 
 
+def verify_assets():
+    participants = []
+    created = []
+    try:
+        for name in ['varlik', 'uzman', 'calisan']:
+            opener, _ = client()
+            expect(call(opener, '/auth/login', 'POST', {'email': name + '@destekmasa.local', 'password': password})[0], 200, 'Varlık testi girişi')
+            participants.append(opener)
+        manager, staff, employee = participants
+        expect(call(employee, '/assets')[0], 403, 'Çalışanın envanter erişimi')
+        suffix = uuid.uuid4().hex[:10].upper()
+        for index, kind in enumerate(['server', 'service', 'application']):
+            body = {'code': f'VER-{suffix}-{index}', 'name': '[Doğrulama] Varlık', 'kind': kind, 'state': 'active', 'owner_id': None}
+            key = {'Idempotency-Key': str(uuid.uuid4())}
+            expect(call(staff, '/assets', 'POST', body, key)[0], 403, 'Uzmanın varlık oluşturması')
+            status, result = call(manager, '/assets', 'POST', body, key)
+            expect(status, 201, 'Varlık oluştur')
+            created.append(result['asset'])
+            status, replay = call(manager, '/assets', 'POST', body, key)
+            expect(status, 201, 'Varlık tekrar isteği')
+            if replay['asset']['id'] != result['asset']['id']:
+                raise AssertionError('Tekrar istek çift varlık açtı')
+        ids = [a['id'] for a in created]
+        for a, b in [(ids[0], ids[1]), (ids[1], ids[2]), (ids[2], ids[0])]:
+            expect(call(manager, f'/assets/{a}/dependencies/{b}', 'PUT')[0], 200, 'Graf bağlantısı')
+        status, impact = call(staff, f'/assets/{ids[0]}/impact')
+        expect(status, 200, 'Döngülü graf etkisi')
+        if {a['id'] for a in impact['items']} != set(ids) or len(impact['items']) != 3:
+            raise AssertionError('Döngüde yinelenen veya eksik etki')
+        status, detail = call(staff, f'/assets/{ids[1]}')
+        expect(status, 200, 'Bağımlılık yönü')
+        if detail['providers'][0]['id'] != ids[0] or detail['dependents'][0]['id'] != ids[2]:
+            raise AssertionError('Sağlayıcı/bağımlı yönü yanlış')
+        a = created[0]
+        edit = {k: a[k] for k in ['code', 'name', 'kind', 'state', 'owner_id', 'version']}
+        edit['name'] = '[Doğrulama] Güncellenmiş varlık'
+        expect(call(manager, f"/assets/{a['id']}", 'PUT', edit)[0], 200, 'Varlık düzenle')
+        expect(call(manager, f"/assets/{a['id']}", 'PUT', edit)[0], 409, 'Eski sürüm reddi')
+    finally:
+        if participants:
+            manager = participants[0]
+            for a in created:
+                for b in created:
+                    if a['id'] != b['id']:
+                        call(manager, f"/assets/{a['id']}/dependencies/{b['id']}", 'DELETE')
+                status, result = call(manager, f"/assets/{a['id']}")
+                if status == 200:
+                    edit = {k: result['asset'][k] for k in ['code', 'name', 'kind', 'state', 'owner_id', 'version']}
+                    edit['state'] = 'retired'
+                    expect(call(manager, f"/assets/{a['id']}", 'PUT', edit)[0], 200, 'Doğrulama varlığını kullanımdan kaldır')
+        for opener in participants:
+            try:
+                call(opener, '/auth/logout', 'POST')
+            except Exception:
+                pass
+
+
 if args.auth or args.full:
     check('AUTH', verify_auth)
     check('RBAC', verify_rbac)
@@ -627,8 +685,10 @@ if args.threads or args.full:
     check('THREADS', verify_threads)
 if args.t3 or args.full:
     check('T-3', verify_t3_proof)
+if args.assets or args.full:
+    check('F-5', verify_assets)
 if args.full:
-    for name in ['F-4', 'F-5', 'F-6', 'F-7', 'T-4']:
+    for name in ['F-4', 'F-6', 'F-7', 'T-4']:
         print(f'{name:<16} FAIL     Henüz uygulanmadı; kabul testi bekleniyor')
         failed = True
 sys.exit(1 if failed else 0)

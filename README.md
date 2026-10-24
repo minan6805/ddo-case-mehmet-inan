@@ -70,7 +70,7 @@ Talep erişimi: her rol kendi adına talep açabilir. Çalışan ve varlık yön
 
 Durum akışı: açık → işlemde → yanıt bekleniyor → işlemde → çözüldü → kapalı. Çözülen talep işlemde durumuna dönebilir; kapalı talep tekrar açılmaz. Paylaşılan mesajlar ve destek iç notları hazır. Talep silme ve açıklama düzenleme henüz yok.
 
-**Henüz yok:** varlık grafı, değişiklik akışı, bilgi bankası, raporlar, günlük 800 taleplik genel simülatör, CI/lint ve OpenAPI. Sınırlı e-posta simülatörü hazır. Rol kontrolünün altyapısı ve örnek uç hazır; gelecekteki her işlev kendi erişim kurallarını uygulamalı.
+**Henüz yok:** değişiklik akışı, bilgi bankası, raporlar, günlük 800 taleplik genel simülatör, CI/lint ve OpenAPI. Sınırlı e-posta simülatörü hazır. Rol kontrolünün altyapısı ve örnek uç hazır; gelecekteki her işlev kendi erişim kurallarını uygulamalı.
 
 Oturumlar sabit sürelidir; otomatik yenileme ve periyodik süresi dolmuş oturum temizliği henüz yok. Giriş hızı sınırlaması, parola değiştirme ve hesap yönetimi henüz yok. Audit trigger'ları normal UPDATE/DELETE/TRUNCATE işlemlerini reddeder; veritabanı yöneticisinin trigger'ları devre dışı bırakmasına karşı koruma iddiası yok.
 
@@ -97,3 +97,7 @@ Lider/admin ekranındaki “E-posta simülatörü” kayıtlı kullanıcı adın
 Talep detayında lider/admin “Talebi birleştir veya böl” alanından aynı kişiye ait kayıtları birleştirir veya seçilen mesajları yeni talebe ayırır. İç notlar gizli kalır; ekler korunur. Bölmede yeni SLA başlar; birleştirmede hedefin süresi korunur. İşlem geçmişi detayda görünür.
 
 `make verify-t3` API ve gerçek PostgreSQL kanıtını çalıştırır. Teknik kurallar, sınırlar ve simülatör: [docs/EMAIL.md](docs/EMAIL.md). Genel doğrulamada artık T-3 PASS; kalan F-4…F-7 ve T-4 nedeniyle tüm proje henüz hazır değildir.
+
+## Varlık envanteri ve etki grafı
+
+Uzman/lider/varlık yöneticisi/admin “Varlıklar” sekmesinden envanteri ve aşağı yöndeki arıza etkisini görür. Varlık yöneticisi/admin kod, ad, tür, durum, sorumlu ve sağlayıcı → bağımlı bağlantılarını düzenler. Döngüler sonlu ve tekrarsız hesaplanır; graf ve örnek yollar gösterilir. `make verify-assets` API, `make prove-assets` gerçek PostgreSQL kanıtıdır. Kurallar ve sınırlar: [docs/ASSETS.md](docs/ASSETS.md).

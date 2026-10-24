@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { APIError, request, type User } from './api';
 import './style.css';
 import { Tickets } from './Tickets';
+import { Assets } from './Assets';
 
 type Status = 'loading' | 'ready' | 'error';
 const roleLabels: Record<string, string> = {
@@ -108,10 +109,11 @@ function Account({ user, onLogout }: { user: User; onLogout: () => void }) {
 }
 
 function App() {
+  const [view, setView] = useState<'tickets' | 'assets'>('tickets');
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Status>('loading');
   const [attempt, setAttempt] = useState(0);
-  const expireSession = useCallback(() => { setUser(null); setSession('ready'); }, []);
+  const expireSession = useCallback(() => { setUser(null); setView('tickets'); setSession('ready'); }, []);
   useEffect(() => {
     let active = true;
     setSession('loading');
@@ -133,7 +135,7 @@ function App() {
         <p className="intro">Kurumunuzun destek süreçleri için tek bir başlangıç noktası.</p>
         {session === 'loading' && <section className="status-card"><p role="status">Oturum kontrol ediliyor…</p></section>}
         {session === 'error' && <section className="status-card"><p role="alert">Oturum bilgisi alınamadı. Lütfen tekrar deneyin.</p><button onClick={() => setAttempt((value) => value + 1)}>Tekrar dene</button></section>}
-        {session === 'ready' && (user ? <><Account user={user} onLogout={expireSession} /><Tickets key={user.id} user={user} onExpired={expireSession} /></> : <Login onLogin={setUser} />)}
+        {session === 'ready' && (user ? <><Account user={user} onLogout={expireSession} />{['specialist', 'team_lead', 'asset_manager', 'admin'].includes(user.role) && <nav className="module-nav" aria-label="Modüller"><button className={view === 'tickets' ? '' : 'secondary'} onClick={() => setView('tickets')}>Talepler</button><button className={view === 'assets' ? '' : 'secondary'} onClick={() => setView('assets')}>Varlıklar</button></nav>}{view === 'assets' ? <Assets key={user.id} user={user} onExpired={expireSession} /> : <Tickets key={user.id} user={user} onExpired={expireSession} />}</> : <Login onLogin={setUser} />)}
         <ConnectionStatus />
       </main>
       <footer>DestekMasa <span>Mehmet İnan · DDO projesi</span></footer>

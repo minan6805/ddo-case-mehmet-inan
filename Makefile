@@ -1,4 +1,4 @@
-.PHONY: up down logs smoke verify test test-integration verify-auth verify-tickets verify-sla prove-sla verify-assignment prove-assignment verify-comments verify-email verify-t3 prove-t3 simulate-email prove-email load reset-demo
+.PHONY: up down logs smoke verify test test-integration verify-auth verify-tickets verify-sla prove-sla verify-assignment prove-assignment verify-comments verify-email verify-t3 prove-t3 simulate-email prove-email load reset-demo verify-assets prove-assets
 
 up:
 	docker compose up --build -d --wait
@@ -66,3 +66,9 @@ reset-demo:
 	@test "$(CONFIRM)" = yes
 	docker compose down --volumes
 	docker compose up --build -d --wait
+
+verify-assets:
+	python3 scripts/verify.py --assets
+
+prove-assets:
+	TEST_PACKAGE=./internal/assets TEST_RUN=TestPostgresAssetGraph sh scripts/test-integration.sh

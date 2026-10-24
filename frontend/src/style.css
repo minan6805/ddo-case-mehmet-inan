@@ -159,3 +159,14 @@ progress { width: 100%; height: 8px; accent-color: #21644f; }
 .split-candidate { display: flex; align-items: flex-start; gap: 12px; overflow-wrap: anywhere; }
 .split-candidate input[type=checkbox] { width: auto; margin-top: 3px; flex-shrink: 0; }
 .thread-tools li { margin-bottom: 12px; }
+
+.module-nav { display: flex; gap: 12px; flex-wrap: wrap; margin: 28px 0; }
+.graph-scroll { max-width: 100%; overflow-x: auto; border: 1px solid #dce4ec; border-radius: 12px; margin: 20px 0; }
+.graph-scroll svg { display: block; }
+.impact-list { padding-left: 20px; overflow-wrap: anywhere; }
+.impact-list li { margin: 10px 0; }
+
+.asset-module .section-heading { flex-wrap: wrap; }
+.asset-module .section-heading button { flex-shrink: 1; max-width: 100%; overflow-wrap: anywhere; }
+.asset-module h3, .asset-module .row-top { overflow-wrap: anywhere; }
+.asset-module .graph-scroll { width: 100%; min-width: 0; }

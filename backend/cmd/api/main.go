@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"syscall"
 
+	"destekmasa/internal/assets"
 	"destekmasa/internal/assignment"
 	"destekmasa/internal/auth"
 	"destekmasa/internal/sla"
@@ -141,7 +142,7 @@ func run(logger *slog.Logger) error {
 	ticketService := tickets.NewWithEngines(pool, slaEngine, routingEngine)
 	router := httpapi.NewServicesRouter(httpapi.Services{
 		Database: pool, Authentication: authService, AuthOptions: httpapi.AuthOptions{SecureCookie: secure},
-		Comments: ticketService, Email: ticketService, Threads: ticketService,
+		Comments: ticketService, Email: ticketService, Threads: ticketService, Assets: assets.New(pool),
 		Tickets: ticketService, SLA: slaEngine, Assignment: routingEngine,
 	})
 	server := &http.Server{
