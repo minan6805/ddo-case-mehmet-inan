@@ -1,0 +1,91 @@
+name: destekmasa
+services:
+  db:
+    image: postgres:16-alpine
+    user: postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Copy .env.example to .env first}
+      POSTGRES_USER: ${POSTGRES_USER:?Copy .env.example to .env first}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env first}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api:
+    build: ./backend
+    environment:
+      HTTP_ADDR: ':8080'
+      HEALTHCHECK_URL: http://127.0.0.1:8080/health
+      PGHOST: db
+      PGPORT: '5432'
+      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGSSLMODE: disable
+      DEMO_SEED: ${DEMO_SEED:-true}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-DemoDestek2026!}
+      ASSIGNMENT_SWEEP_INTERVAL: ${ASSIGNMENT_SWEEP_INTERVAL:-10s}
+      ASSIGNMENT_SWEEP_BATCH: ${ASSIGNMENT_SWEEP_BATCH:-100}
+      SLA_SWEEP_INTERVAL: ${SLA_SWEEP_INTERVAL:-10s}
+      SLA_SWEEP_BATCH: ${SLA_SWEEP_BATCH:-200}
+      SESSION_TTL: ${SESSION_TTL:-8h}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    ports:
+      - '127.0.0.1:${BACKEND_PORT:-8080}:8080'
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, /app/api, healthcheck]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+    init: true
+  frontend:
+    build: ./frontend
+    ports:
+      - '127.0.0.1:${FRONTEND_PORT:-3001}:8080'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, --spider, http://127.0.0.1:8080/]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  email-simulator:
+    image: python:3.13-alpine
+    user: '65532:65532'
+    profiles: [tools]
+    environment:
+      API_URL: http://api:8080
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-DemoDestek2026!}
+      SIMULATOR_SEED: ${SIMULATOR_SEED:-42}
+      SIMULATOR_RUN: ${SIMULATOR_RUN:-demo-v1}
+      EMAIL_COUNT: ${EMAIL_COUNT:-3}
+    volumes:
+      - ./scripts/simulate-email.py:/scripts/simulate-email.py:ro
+    command: [python, /scripts/simulate-email.py]
+    depends_on:
+      api:
+        condition: service_healthy
+  load:
+    image: grafana/k6:0.56.0
+    user: '12345:12345'
+    profiles: [load]
+    environment:
+      BASE_URL: http://api:8080
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-DemoDestek2026!}
+      VUS: ${LOAD_VUS:-10}
+      DURATION: ${LOAD_DURATION:-20s}
+    volumes:
+      - ./scripts/load-sla.js:/scripts/load-sla.js:ro
+    command: [run, /scripts/load-sla.js]
+    depends_on:
+      api:
+        condition: service_healthy
+volumes:
+  postgres_data:

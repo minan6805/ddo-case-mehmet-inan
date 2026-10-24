@@ -1,0 +1,28 @@
+name: destekmasa-tests
+services:
+  test-db:
+    image: postgres:16-alpine
+    user: postgres
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_DB: destekmasa_test
+      POSTGRES_USER: test_runner
+      POSTGRES_PASSWORD: isolated-test-only
+    tmpfs:
+      - /var/lib/postgresql/data:mode=1777
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U test_runner -d destekmasa_test]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  integration:
+    build:
+      context: ./backend
+      target: test
+    environment:
+      INTEGRATION_DATABASE_URL: postgres://test_runner:isolated-test-only@test-db:5432/destekmasa_test?sslmode=disable
+    entrypoint: [go, test, -race, -count=1, -v, -run, '${TEST_RUN:-.}']
+    command: ['${TEST_PACKAGE:-./...}']
+    depends_on:
+      test-db:
+        condition: service_healthy

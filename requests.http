@@ -1,0 +1,210 @@
+@baseUrl = http://localhost:8080
+@demoPassword = DemoDestek2026!
+
+### API ve gerçek veritabanı sağlık kontrolü
+GET {{baseUrl}}/health
+Accept: application/json
+
+### Çalışan girişi — REST Client çerezleri sonraki isteklerde saklamalı
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"calisan@destekmasa.local","password":"{{demoPassword}}"}
+
+### Mevcut kullanıcı — giriş sonrası 200, oturum yoksa 401
+GET {{baseUrl}}/auth/me
+
+### Çalışana 403, yöneticiye 200
+GET {{baseUrl}}/admin/overview
+
+### Yönetici girişi
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"admin@destekmasa.local","password":"{{demoPassword}}"}
+
+### Yönetici kontrolü
+GET {{baseUrl}}/admin/overview
+
+### Çıkış — 204
+POST {{baseUrl}}/auth/logout
+
+### Yanlış parola — 401
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"calisan@destekmasa.local","password":"wrong-password"}
+
+### Yabancı Origin — 403
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+Origin: https://attacker.example
+
+{"email":"admin@destekmasa.local","password":"{{demoPassword}}"}
+
+### Tutarlı 404 hata gövdesi
+GET {{baseUrl}}/missing
+
+### Talep kategorileri — önce giriş yap
+GET {{baseUrl}}/ticket-categories
+
+### Yeni talep — aynı içerik/anahtar tekrarı aynı sonucu döndürür
+# Farklı bir talep için yeni anahtar kullan. 201 cevabındaki id'yi ticketId'ye yaz.
+POST {{baseUrl}}/tickets
+Content-Type: application/json
+Idempotency-Key: manual-ticket-001
+
+{"title":"Kurum ağına bağlanamıyorum","description":"Sabah itibarıyla bağlantım kesildi.","priority":"high","category":"network"}
+
+### Talep listesi — çalışan kendi taleplerini, destek ekibi tüm kuyruğu görür
+GET {{baseUrl}}/tickets?limit=20
+
+### Durum filtresi
+GET {{baseUrl}}/tickets?limit=20&status=open
+
+### Sonraki sayfa — listede dönen next_cursor değerini kullan
+GET {{baseUrl}}/tickets?limit=20&before=1
+
+@ticketId = 1
+
+### Talep detayı
+GET {{baseUrl}}/tickets/{{ticketId}}
+
+### Durum değiştir — uzman/lider/admin ile; açık → işlemde
+PATCH {{baseUrl}}/tickets/{{ticketId}}/status
+Content-Type: application/json
+
+{"status":"in_progress"}
+
+### İşlemde → çözüldü
+PATCH {{baseUrl}}/tickets/{{ticketId}}/status
+Content-Type: application/json
+
+{"status":"resolved"}
+
+### Talebin SLA bilgisi — kendi talebi veya destek ekibi
+GET {{baseUrl}}/tickets/{{ticketId}}/sla
+
+### SLA ayarları — uzman/lider/admin; çalışan 403
+GET {{baseUrl}}/sla/settings
+
+### SLA olayları — destek ekibi
+GET {{baseUrl}}/sla/alerts?limit=20
+
+### SLA politika kaydı — admin; önce settings cevabındaki güncel version'ı yaz
+PUT {{baseUrl}}/sla/policies/general/normal
+Content-Type: application/json
+
+{"response_minutes":240,"resolution_minutes":960,"version":1}
+
+### Salt okunur SLA hesaplama — uzman/lider/admin, hiçbir üretim kaydını/saatini değiştirmez
+POST {{baseUrl}}/sla/preview
+Content-Type: application/json
+
+{"calendar":{"timezone":"Europe/Istanbul","start_minute":510,"end_minute":1080,"version":1,"holidays":[]},"history":[{"status":"open","at":"2026-10-23T17:30:00+03:00"}],"as_of":"2026-10-23T17:30:00+03:00","response_minutes":60,"resolution_minutes":480}
+
+### Takvim kaydı — admin; gövdeyi GET /sla/settings içindeki calendar nesnesinden kopyala.
+# Güncel version ve tüm tatiller korunmalı. Aşağıdaki seed örneği sürüm 1 içindir.
+PUT {{baseUrl}}/sla/calendar
+Content-Type: application/json
+
+{"timezone":"Europe/Istanbul","start_minute":510,"end_minute":1080,"version":1,"holidays":[{"date":"2026-01-01","closed_from_minute":0,"label":"Yılbaşı"},{"date":"2026-03-19","closed_from_minute":780,"label":"Ramazan Bayramı arifesi"},{"date":"2026-03-20","closed_from_minute":0,"label":"Ramazan Bayramı"},{"date":"2026-03-21","closed_from_minute":0,"label":"Ramazan Bayramı"},{"date":"2026-03-22","closed_from_minute":0,"label":"Ramazan Bayramı"},{"date":"2026-04-23","closed_from_minute":0,"label":"Ulusal Egemenlik ve Çocuk Bayramı"},{"date":"2026-05-01","closed_from_minute":0,"label":"Emek ve Dayanışma Günü"},{"date":"2026-05-19","closed_from_minute":0,"label":"Atatürk’ü Anma Gençlik ve Spor Bayramı"},{"date":"2026-05-26","closed_from_minute":780,"label":"Kurban Bayramı arifesi"},{"date":"2026-05-27","closed_from_minute":0,"label":"Kurban Bayramı"},{"date":"2026-05-28","closed_from_minute":0,"label":"Kurban Bayramı"},{"date":"2026-05-29","closed_from_minute":0,"label":"Kurban Bayramı"},{"date":"2026-05-30","closed_from_minute":0,"label":"Kurban Bayramı"},{"date":"2026-07-15","closed_from_minute":0,"label":"Demokrasi ve Millî Birlik Günü"},{"date":"2026-08-30","closed_from_minute":0,"label":"Zafer Bayramı"},{"date":"2026-10-28","closed_from_minute":780,"label":"Cumhuriyet Bayramı arifesi"},{"date":"2026-10-29","closed_from_minute":0,"label":"Cumhuriyet Bayramı"}]}
+
+### Lider girişi — uzman ayarlarını düzenleyebilir
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{"email":"lider@destekmasa.local","password":"{{demoPassword}}"}
+
+### Uzman yük/beceri/vardiya panosu — destek ekibi
+GET {{baseUrl}}/assignment/experts
+
+### Bana atananlar
+GET {{baseUrl}}/tickets?limit=20&queue=mine
+
+### Atama bekleyen aktif talepler
+GET {{baseUrl}}/tickets?limit=20&queue=unassigned
+
+### Dahili atama geçmişi — uzman/lider/admin
+GET {{baseUrl}}/tickets/{{ticketId}}/assignments?limit=20
+
+### Aynı talebin atamasını tekrar değerlendir — uygun atama gereksiz yere değişmez
+PATCH {{baseUrl}}/tickets/{{ticketId}}/assignment
+
+@expertId = 2
+
+### Uzman profili — lider/admin; önce GET panosundaki güncel version'ı ve değerleri kullan
+# Bu örnek birinci uzmanın başlangıç profilidir; on_leave:true açık işlerini devreder.
+PUT {{baseUrl}}/assignment/experts/{{expertId}}
+Content-Type: application/json
+
+{"capacity":8,"enabled":true,"on_leave":false,"timezone":"Europe/Istanbul","shift_start_minute":0,"shift_end_minute":1440,"weekdays":[1,2,3,4,5,6,7],"skills":[{"code":"general","level":5},{"code":"network","level":5},{"code":"software","level":4}],"version":1}
+
+### Talebin görülebilir mesajları — requester sadece external görür
+GET {{baseUrl}}/tickets/1/comments?limit=20
+
+### Mesaj ekle — oturum çerezi gerekir, aynı denemede aynı anahtarı koru
+POST {{baseUrl}}/tickets/1/comments
+Content-Type: application/json
+Idempotency-Key: comment-demo-1
+
+{"body":"Ek bilgi paylaşıyorum.","visibility":"external"}
+
+### İç not — yalnızca uzman/lider/admin
+POST {{baseUrl}}/tickets/1/comments
+Content-Type: application/json
+Idempotency-Key: internal-demo-1
+
+{"body":"Ağ ekibiyle görüşüldü.","visibility":"internal"}
+
+### Güvenilir gelen posta — lider/admin oturumu; aynı ham içerikle tekrar 200
+POST {{baseUrl}}/email/ingest
+Content-Type: message/rfc822
+
+Message-ID: <demo-inbox-1@destekmasa.local>
+From: calisan@destekmasa.local
+Subject: E-posta ile destek
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Bağlantı sorunu yaşıyorum.
+
+-- 
+Demo Kullanıcı
+
+### E-posta yanıtı — numarayı oluşturulan taleple değiştir
+POST {{baseUrl}}/email/ingest
+Content-Type: message/rfc822
+
+Message-ID: <demo-inbox-reply-1@destekmasa.local>
+From: calisan@destekmasa.local
+Subject: Re: #1
+Content-Type: text/plain; charset=utf-8
+
+Ek bilgi paylaşıyorum.
+
+On Monday, Demo wrote:
+> Önceki metin
+
+### Dosya listesi — talep ve yorum numaralarını değiştir
+GET {{baseUrl}}/tickets/1/comments/1/attachments
+
+### Dosya indir — oturum ve yorum görünürlüğü kontrol edilir
+GET {{baseUrl}}/attachments/1
+
+### Birleştir — aynı talep eden; lider/admin; kaynak kapanır
+POST {{baseUrl}}/tickets/1/merge
+Content-Type: application/json
+Idempotency-Key: merge-demo-1
+
+{"target_id":2}
+
+### Böl — bu talepteki gerçek mesaj numaralarını seç; lider/admin
+POST {{baseUrl}}/tickets/2/split
+Content-Type: application/json
+Idempotency-Key: split-demo-1
+
+{"title":"Ayrı incelenecek konu","comment_ids":[1]}
+
+### Sahiplik kontrollü işlem geçmişi
+GET {{baseUrl}}/tickets/2/operations?limit=20
