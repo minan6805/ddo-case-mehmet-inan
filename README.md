@@ -1,6 +1,6 @@
-# DestekMasa — Mehmet İnan
+# DDO Projesi — Mehmet İnan
 
-DDO IT yardım masası projesi. **Geliştirme aşamasında: servis bağlantısı, giriş/çıkış, rol kontrolü, temel talep akışı, iş takvimli SLA, otomatik atama motoru ve görünürlük kontrollü talep mesajları ve T-3 e-posta/birleştirme/bölme akışı.** Gereksinim belgesi: [proje.md](proje.md).
+DDO IT yardım masası projesi. **Geliştirme aşamasında: servis bağlantısı, giriş/çıkış, rol kontrolü, temel talep akışı, iş takvimli SLA, otomatik atama motoru ve görünürlük kontrollü talep mesajları ve T-3 e-posta/birleştirme/bölme akışı.**
 
 ## Kurulum
 
@@ -48,7 +48,7 @@ Go standart HTTP kütüphanesiyle başlıyoruz. pgx, SQL ve transaction'ları a�
 
 Girişte bcrypt parola özeti doğrulanır. Kriptografik olarak rastgele 32 baytlık oturum anahtarı HttpOnly/SameSite=Strict çereze yazılır; veritabanında yalnızca SHA-256 özeti tutulur. Her korumalı istekte geçerlilik ve güncel kullanıcı rolü veritabanından okunur. Tekrar giriş eski tarayıcı oturumunu döndürür; çıkış oturumu siler. Başarılı giriş/çıkış ve denetim kaydı aynı transaction içinde tamamlanır. JSON giriş zorunluluğu, Origin kontrolü ve SameSite çerez politikası yabancı sitelerden yazma isteklerini sınırlar.
 
-Kararlar: [DECISIONS.md](DECISIONS.md). Öğrenme notları: [docs/OGRENME.md](docs/OGRENME.md).
+Kararlar: [DECISIONS.md](DECISIONS.md).
 
 ## SLA motoru
 
@@ -88,7 +88,7 @@ Kısa k6 ölçümü: 10 VU, 20 saniye; SLA preview ucunda 3.930 hesaplama isteğ
 
 Talep detayında “Mesajlar ve notlar” alanı var. Çalışan kendi talebine paylaşılan mesaj ekler; uzman/lider/admin ayrıca “İç not” seçebilir. İç notlar çalışanın API yanıtına dahi girmez. Metinler HTML olarak çalıştırılmaz; kapalı talebe yeni mesaj yazılmaz. Aynı gönderim anahtarıyla yeniden denemek çift kayıt oluşturmaz.
 
-`make verify-comments` çalışan sistemde görünürlük, sahiplik, tekrar/çakışma ve kapanış kurallarını doğrular. Mesajlar uygulamada kaydedilir; dışarıya e-posta gönderimi yoktur. Mesaj eklemek durumu veya SLA sayacını değiştirmez; ilk yanıt hâlâ açık “İşlemde” kabulüyle kaydedilir. Ayrıntı ve görüşme açıklaması: [docs/COMMENTS.md](docs/COMMENTS.md), [öğrenme notları](docs/OGRENME.md#22-paylaşılan-mesaj-ve-iç-not-neden-ayrı).
+`make verify-comments` çalışan sistemde görünürlük, sahiplik, tekrar/çakışma ve kapanış kurallarını doğrular. Mesajlar uygulamada kaydedilir; dışarıya e-posta gönderimi yoktur. Mesaj eklemek durumu veya SLA sayacını değiştirmez; ilk yanıt hâlâ açık “İşlemde” kabulüyle kaydedilir. Ayrıntılar: [docs/COMMENTS.md](docs/COMMENTS.md).
 
 ## E-posta, birleştirme ve bölme (T-3)
 

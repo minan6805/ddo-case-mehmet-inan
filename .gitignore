@@ -6,3 +6,7 @@ coverage.out
 *.log
 __pycache__/
 *.pyc
+
+# Local reference and study notes
+/proje.md
+/docs/OGRENME.md
