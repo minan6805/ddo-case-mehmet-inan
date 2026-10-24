@@ -21,24 +21,11 @@ func registerComments(mux *http.ServeMux, authentication Authenticator, service 
 		if !ok {
 			return
 		}
-		limit := 20
-		var before int64
-		var err error
-		if v := r.URL.Query().Get("limit"); v != "" {
-			limit, err = strconv.Atoi(v)
-		}
-		if err != nil || limit < 1 || limit > 100 {
-			writeError(w, 400, "INVALID_PAGINATION", "Sayfa boyutu 1–100 arasında olmalı.")
+		before, limit, ok := pageParams(w, r)
+		if !ok {
 			return
 		}
-		if v := r.URL.Query().Get("before"); v != "" {
-			before, err = strconv.ParseInt(v, 10, 64)
-			if err != nil || before < 1 {
-				writeError(w, 400, "INVALID_PAGINATION", "Sayfa imleci geçersiz.")
-				return
-			}
-		}
-		items, err := service.Comments(r.Context(), r.Context().Value(userContextKey{}).(auth.User), id, before, limit)
+		items, err := service.Comments(r.Context(), currentUser(r), id, before, limit)
 		if err != nil {
 			commentError(w, err)
 			return
@@ -67,7 +54,7 @@ func registerComments(mux *http.ServeMux, authentication Authenticator, service 
 		if !decodeJSON(w, r, &input) {
 			return
 		}
-		c, err := service.AddComment(r.Context(), r.Context().Value(userContextKey{}).(auth.User), id, input, key)
+		c, err := service.AddComment(r.Context(), currentUser(r), id, input, key)
 		if err != nil {
 			commentError(w, err)
 			return

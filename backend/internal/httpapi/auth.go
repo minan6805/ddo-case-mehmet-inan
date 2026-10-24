@@ -170,3 +170,8 @@ func registerAuth(mux *http.ServeMux, service Authenticator, options AuthOptions
 		writeJSON(w, http.StatusOK, map[string]string{"message": "Yönetici erişimi doğrulandı."})
 	}))
 }
+
+// currentUser is only called by handlers wrapped in requireRole.
+func currentUser(r *http.Request) auth.User {
+	return r.Context().Value(userContextKey{}).(auth.User)
+}

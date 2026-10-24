@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"destekmasa/internal/assignment"
-	"destekmasa/internal/auth"
 )
 
 type AssignmentService interface {
@@ -58,7 +57,7 @@ func registerAssignment(mux *http.ServeMux, authentication Authenticator, servic
 		if !decodeJSON(w, r, &input) {
 			return
 		}
-		actor := r.Context().Value(userContextKey{}).(auth.User)
+		actor := currentUser(r)
 		board, err := service.UpdateExpert(r.Context(), id, actor.ID, input)
 		if err != nil {
 			assignmentError(w, err)
@@ -74,7 +73,7 @@ func registerAssignment(mux *http.ServeMux, authentication Authenticator, servic
 		if !ok {
 			return
 		}
-		actor := r.Context().Value(userContextKey{}).(auth.User)
+		actor := currentUser(r)
 		if err := service.Retry(r.Context(), id, actor.ID); err != nil {
 			assignmentError(w, err)
 			return
@@ -86,22 +85,10 @@ func registerAssignment(mux *http.ServeMux, authentication Authenticator, servic
 		if !ok {
 			return
 		}
-		var before int64
-		var err error
-		if value := r.URL.Query().Get("before"); value != "" {
-			before, err = strconv.ParseInt(value, 10, 64)
-			if err != nil || before < 1 {
-				assignmentError(w, assignment.ErrInvalid)
-				return
-			}
-		}
-		limit := 20
-		if value := r.URL.Query().Get("limit"); value != "" {
-			limit, err = strconv.Atoi(value)
-			if err != nil || limit < 1 || limit > 100 {
-				assignmentError(w, assignment.ErrInvalid)
-				return
-			}
+		before, limit, err := parsePagination(r)
+		if err != nil {
+			assignmentError(w, assignment.ErrInvalid)
+			return
 		}
 		history, err := service.History(r.Context(), id, before, limit)
 		if err != nil {

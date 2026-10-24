@@ -1,3 +1,4 @@
+import { formatDate as dateTime } from './format';
 import { useEffect, useState } from 'react';
 import { APIError, request, type User } from './api';
 
@@ -13,7 +14,6 @@ type Board = { experts: Expert[]; skills: SkillInfo[]; queued: number };
 type History = { id: number; from_name: string; to_name: string; actor_name: string; reason: string; created_at: string; score: { total?: number; skill_points?: number; spare_points?: number; rotation_points?: number } };
 const timeValue = (minutes: number) => `${String(Math.floor((minutes % 1440) / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 const minutesValue = (value: string) => { const [hour, minute] = value.split(':').map(Number); return hour * 60 + minute; };
-const dateTime = (value: string) => new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
 const message = (error: unknown) => error instanceof Error ? error.message : 'İşlem tamamlanamadı.';
 function inputOf(expert: Expert): ProfileInput {
   return { capacity: expert.capacity, enabled: expert.enabled, on_leave: expert.on_leave, timezone: expert.timezone,

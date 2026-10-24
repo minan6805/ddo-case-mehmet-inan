@@ -39,7 +39,7 @@ func registerEmail(mux *http.ServeMux, authentication Authenticator, service Ema
 			}
 			return
 		}
-		receipt, err := service.IngestEmail(r.Context(), r.Context().Value(userContextKey{}).(auth.User), raw)
+		receipt, err := service.IngestEmail(r.Context(), currentUser(r), raw)
 		if err != nil {
 			emailError(w, err)
 			return
@@ -60,7 +60,7 @@ func registerEmail(mux *http.ServeMux, authentication Authenticator, service Ema
 			writeError(w, 400, "INVALID_ID", "Geçerli bir mesaj numarası gönderin.")
 			return
 		}
-		items, err := service.Attachments(r.Context(), r.Context().Value(userContextKey{}).(auth.User), id, comment)
+		items, err := service.Attachments(r.Context(), currentUser(r), id, comment)
 		if err != nil {
 			ticketError(w, err)
 			return
@@ -72,7 +72,7 @@ func registerEmail(mux *http.ServeMux, authentication Authenticator, service Ema
 		if !ok {
 			return
 		}
-		a, err := service.DownloadAttachment(r.Context(), r.Context().Value(userContextKey{}).(auth.User), id)
+		a, err := service.DownloadAttachment(r.Context(), currentUser(r), id)
 		if err != nil {
 			ticketError(w, err)
 			return

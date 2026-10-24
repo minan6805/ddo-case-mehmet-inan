@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"destekmasa/internal/auth"
 	"destekmasa/internal/sla"
 	"destekmasa/internal/tickets"
 )
@@ -46,7 +45,7 @@ func registerSLA(mux *http.ServeMux, authentication Authenticator, service SLASe
 		if !ok {
 			return
 		}
-		user := r.Context().Value(userContextKey{}).(auth.User)
+		user := currentUser(r)
 		result, err := service.Ticket(r.Context(), user.ID, tickets.IsStaff(user.Role), id)
 		if err != nil {
 			slaError(w, err)
@@ -70,7 +69,7 @@ func registerSLA(mux *http.ServeMux, authentication Authenticator, service SLASe
 		if !decodeJSON(w, r, &input) {
 			return
 		}
-		result, err := service.UpdateCalendar(r.Context(), r.Context().Value(userContextKey{}).(auth.User).ID, input)
+		result, err := service.UpdateCalendar(r.Context(), currentUser(r).ID, input)
 		if err != nil {
 			slaError(w, err)
 			return
@@ -90,7 +89,7 @@ func registerSLA(mux *http.ServeMux, authentication Authenticator, service SLASe
 			return
 		}
 		policy := sla.Policy{Category: r.PathValue("category"), Priority: r.PathValue("priority"), ResponseMinutes: input.ResponseMinutes, ResolutionMinutes: input.ResolutionMinutes, Version: input.Version}
-		result, err := service.UpdatePolicy(r.Context(), r.Context().Value(userContextKey{}).(auth.User).ID, policy)
+		result, err := service.UpdatePolicy(r.Context(), currentUser(r).ID, policy)
 		if err != nil {
 			slaError(w, err)
 			return
@@ -98,22 +97,10 @@ func registerSLA(mux *http.ServeMux, authentication Authenticator, service SLASe
 		writeJSON(w, 200, map[string]any{"policy": result})
 	}))
 	mux.HandleFunc("GET /sla/alerts", staff(func(w http.ResponseWriter, r *http.Request) {
-		var before int64
-		var err error
-		if value := r.URL.Query().Get("before"); value != "" {
-			before, err = strconv.ParseInt(value, 10, 64)
-			if err != nil || before < 1 {
-				slaError(w, sla.ErrInvalid)
-				return
-			}
-		}
-		limit := 20
-		if value := r.URL.Query().Get("limit"); value != "" {
-			limit, err = strconv.Atoi(value)
-			if err != nil || limit < 1 || limit > 100 {
-				slaError(w, sla.ErrInvalid)
-				return
-			}
+		before, limit, err := parsePagination(r)
+		if err != nil {
+			slaError(w, sla.ErrInvalid)
+			return
 		}
 		alerts, err := service.Alerts(r.Context(), before, limit)
 		if err != nil {

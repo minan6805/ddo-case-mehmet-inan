@@ -1,10 +1,10 @@
+import { formatDate } from './format';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { APIError, request } from './api';
 
 type Attachment = { id: number; filename: string; size_bytes: number };
 type Comment = { attachments: Attachment[]; id: number; author_name: string; body: string; visibility: string; created_at: string };
 type Page = { items: Comment[]; next_cursor: string };
-const formatDate = (value: string) => new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
 export function TicketComments({ id, staff, closed, revision, onExpired, onChanged }: {
   id: number; staff: boolean; closed: boolean; revision: string; onExpired: () => void; onChanged: () => void;
 }) {

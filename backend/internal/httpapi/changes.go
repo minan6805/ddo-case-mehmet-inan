@@ -2,13 +2,14 @@ package httpapi
 
 import (
 	"context"
+	"errors"
+	"net/http"
+	"strconv"
+
 	"destekmasa/internal/assets"
 	"destekmasa/internal/auth"
 	"destekmasa/internal/changes"
 	"destekmasa/internal/tickets"
-	"errors"
-	"net/http"
-	"strconv"
 )
 
 type ChangeService interface {
@@ -50,13 +51,12 @@ func registerChanges(mux *http.ServeMux, authentication Authenticator, service C
 	protect := func(h http.HandlerFunc) http.HandlerFunc {
 		return requireRole(authentication, []string{"specialist", "team_lead", "asset_manager", "admin"}, h)
 	}
-	actor := func(r *http.Request) auth.User { return r.Context().Value(userContextKey{}).(auth.User) }
 	mux.HandleFunc("GET /changes", protect(func(w http.ResponseWriter, r *http.Request) {
 		before, limit, ok := pageParams(w, r)
 		if !ok {
 			return
 		}
-		items, err := service.List(r.Context(), actor(r), before, limit, r.URL.Query().Get("status"))
+		items, err := service.List(r.Context(), currentUser(r), before, limit, r.URL.Query().Get("status"))
 		if err != nil {
 			changeError(w, err)
 			return
@@ -81,7 +81,7 @@ func registerChanges(mux *http.ServeMux, authentication Authenticator, service C
 		if !decodeJSON(w, r, &input) {
 			return
 		}
-		c, err := service.Create(r.Context(), actor(r), input, key)
+		c, err := service.Create(r.Context(), currentUser(r), input, key)
 		if err != nil {
 			changeError(w, err)
 			return
@@ -93,7 +93,7 @@ func registerChanges(mux *http.ServeMux, authentication Authenticator, service C
 		if !ok {
 			return
 		}
-		c, err := service.Get(r.Context(), actor(r), id)
+		c, err := service.Get(r.Context(), currentUser(r), id)
 		if err != nil {
 			changeError(w, err)
 			return
@@ -112,7 +112,7 @@ func registerChanges(mux *http.ServeMux, authentication Authenticator, service C
 		if !decodeJSON(w, r, &input) {
 			return
 		}
-		c, err := service.Update(r.Context(), actor(r), id, input)
+		c, err := service.Update(r.Context(), currentUser(r), id, input)
 		if err != nil {
 			changeError(w, err)
 			return
@@ -136,7 +136,7 @@ func registerChanges(mux *http.ServeMux, authentication Authenticator, service C
 		if !decodeJSON(w, r, &input) {
 			return
 		}
-		c, err := service.Action(r.Context(), actor(r), id, input, key)
+		c, err := service.Action(r.Context(), currentUser(r), id, input, key)
 		if err != nil {
 			changeError(w, err)
 			return
@@ -148,7 +148,7 @@ func registerChanges(mux *http.ServeMux, authentication Authenticator, service C
 		if !ok {
 			return
 		}
-		preview, err := service.Preview(r.Context(), actor(r), id)
+		preview, err := service.Preview(r.Context(), currentUser(r), id)
 		if err != nil {
 			changeError(w, err)
 			return
@@ -164,7 +164,7 @@ func registerChanges(mux *http.ServeMux, authentication Authenticator, service C
 		if !ok {
 			return
 		}
-		items, err := service.History(r.Context(), actor(r), id, before, limit)
+		items, err := service.History(r.Context(), currentUser(r), id, before, limit)
 		if err != nil {
 			changeError(w, err)
 			return

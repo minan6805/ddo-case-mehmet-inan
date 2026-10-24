@@ -1,69 +1,662 @@
+import { formatDate as date } from './format';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { APIError, request, type User } from './api';
 import { ImpactView, type Asset, type Impact } from './Assets';
-type Change = { id: number; requester_id: number; requester_name: string; title: string; description: string; rollback_plan: string; risk: string; starts_at: string; ends_at: string; status: string; version: number; root_ids: number[]; graph_version: number | null; approved_by: number | null; impact: Impact | null };
-type Conflict = { id: number; title: string; starts_at: string; ends_at: string; stale_graph: boolean };
+type Change = {
+  id: number;
+  requester_id: number;
+  requester_name: string;
+  title: string;
+  description: string;
+  rollback_plan: string;
+  risk: string;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  version: number;
+  root_ids: number[];
+  graph_version: number | null;
+  approved_by: number | null;
+  impact: Impact | null;
+};
+type Conflict = {
+  id: number;
+  title: string;
+  starts_at: string;
+  ends_at: string;
+  stale_graph: boolean;
+};
 type Preview = { impact: Impact; conflicts: Conflict[]; stale: boolean };
-type Event = { id: number; actor_name: string; action: string; to_status: string; note: string; created_at: string };
-const statuses: Record<string, string> = { draft: 'Taslak', submitted: 'CAB onayı bekliyor', approved: 'Onaylandı', implementing: 'Uygulanıyor', completed: 'Tamamlandı', failed: 'Başarısız', rejected: 'Reddedildi', cancelled: 'İptal edildi' };
-const actions: Record<string, string> = { create: 'Taslak oluşturuldu', update: 'Taslak güncellendi', submit: 'CAB onayına gönder', approve: 'CAB: Onayla', request_changes: 'CAB: Düzeltme iste', reject: 'CAB: Reddet', revise: 'Taslağa al ve onayı yenile', cancel: 'Değişikliği iptal et', start: 'Uygulamayı başlat', complete: 'Uygulamayı tamamla', fail: 'Başarısız olarak kapat' };
-const ownActions: Record<string, string[]> = { draft: ['submit', 'cancel'], submitted: ['revise', 'cancel'], approved: ['start', 'revise', 'cancel'], implementing: ['complete', 'fail'] };
-const localTime = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-const date = (s: string) => new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(s));
-function blank() { return { title: '', description: '', rollback_plan: '', risk: 'normal', starts_at: localTime(new Date(Date.now() + 30 * 60000)), ends_at: localTime(new Date(Date.now() + 90 * 60000)), root_ids: [] as number[] }; }
+type Event = {
+  id: number;
+  actor_name: string;
+  action: string;
+  to_status: string;
+  note: string;
+  created_at: string;
+};
+const statuses: Record<string, string> = {
+  draft: 'Taslak',
+  submitted: 'CAB onayı bekliyor',
+  approved: 'Onaylandı',
+  implementing: 'Uygulanıyor',
+  completed: 'Tamamlandı',
+  failed: 'Başarısız',
+  rejected: 'Reddedildi',
+  cancelled: 'İptal edildi',
+};
+const actions: Record<string, string> = {
+  create: 'Taslak oluşturuldu',
+  update: 'Taslak güncellendi',
+  submit: 'CAB onayına gönder',
+  approve: 'CAB: Onayla',
+  request_changes: 'CAB: Düzeltme iste',
+  reject: 'CAB: Reddet',
+  revise: 'Taslağa al ve onayı yenile',
+  cancel: 'Değişikliği iptal et',
+  start: 'Uygulamayı başlat',
+  complete: 'Uygulamayı tamamla',
+  fail: 'Başarısız olarak kapat',
+};
+const ownActions: Record<string, string[]> = {
+  draft: ['submit', 'cancel'],
+  submitted: ['revise', 'cancel'],
+  approved: ['start', 'revise', 'cancel'],
+  implementing: ['complete', 'fail'],
+};
+const localTime = (d: Date) =>
+  new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+function blank() {
+  return {
+    title: '',
+    description: '',
+    rollback_plan: '',
+    risk: 'normal',
+    starts_at: localTime(new Date(Date.now() + 30 * 60000)),
+    ends_at: localTime(new Date(Date.now() + 90 * 60000)),
+    root_ids: [] as number[],
+  };
+}
 export function Changes({ user, onExpired }: { user: User; onExpired: () => void }) {
-  const [items, setItems] = useState<Change[]>([]), [cursor, setCursor] = useState(''), [filter, setFilter] = useState('');
-  const [selected, setSelected] = useState<number | null>(null), [detail, setDetail] = useState<Change | null>(null), [preview, setPreview] = useState<Preview | null>(null);
-  const [history, setHistory] = useState<Event[]>([]), [historyCursor, setHistoryCursor] = useState('');
-  const [catalog, setCatalog] = useState<Asset[]>([]), [catalogCursor, setCatalogCursor] = useState('');
-  const [creating, setCreating] = useState(false), [editing, setEditing] = useState(false), [form, setForm] = useState(blank), [note, setNote] = useState('');
-  const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState(''), [revision, setRevision] = useState(0);
+  const [items, setItems] = useState<Change[]>([]),
+    [cursor, setCursor] = useState(''),
+    [filter, setFilter] = useState('');
+  const [selected, setSelected] = useState<number | null>(null),
+    [detail, setDetail] = useState<Change | null>(null),
+    [preview, setPreview] = useState<Preview | null>(null);
+  const [history, setHistory] = useState<Event[]>([]),
+    [historyCursor, setHistoryCursor] = useState('');
+  const [catalog, setCatalog] = useState<Asset[]>([]),
+    [catalogCursor, setCatalogCursor] = useState('');
+  const [creating, setCreating] = useState(false),
+    [editing, setEditing] = useState(false),
+    [form, setForm] = useState(blank),
+    [note, setNote] = useState('');
+  const [loading, setLoading] = useState(true),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(''),
+    [notice, setNotice] = useState(''),
+    [revision, setRevision] = useState(0);
   const pending = useRef<{ fingerprint: string; key: string } | null>(null);
   const generation = useRef(0);
-  function fail(e: unknown) { if (e instanceof APIError && e.status === 401) { onExpired(); return; } setError(e instanceof Error ? e.message : 'Değişiklik işlemi tamamlanamadı.'); }
-  useEffect(() => { let active = true; generation.current += 1; setLoading(true); setError(''); setItems([]); setCursor('');
-    request<{ items: Change[]; next_cursor: string }>(`/changes?limit=20&status=${filter}`).then((p) => { if (active) { setItems(p.items); setCursor(p.next_cursor); } }).catch((e) => { if (active) fail(e); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; };
+  function fail(e: unknown) {
+    if (e instanceof APIError && e.status === 401) {
+      onExpired();
+      return;
+    }
+    setError(e instanceof Error ? e.message : 'Değişiklik işlemi tamamlanamadı.');
+  }
+  useEffect(() => {
+    let active = true;
+    generation.current += 1;
+    setLoading(true);
+    setError('');
+    setItems([]);
+    setCursor('');
+    request<{ items: Change[]; next_cursor: string }>(`/changes?limit=20&status=${filter}`)
+      .then((p) => {
+        if (active) {
+          setItems(p.items);
+          setCursor(p.next_cursor);
+        }
+      })
+      .catch((e) => {
+        if (active) fail(e);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [filter, revision, onExpired]);
-  useEffect(() => { let active = true; request<{ items: Asset[]; next_cursor: string }>('/assets?limit=100').then((p) => { if (active) { setCatalog(p.items); setCatalogCursor(p.next_cursor); } }).catch((e) => { if (active) fail(e); }); return () => { active = false; };
+  useEffect(() => {
+    let active = true;
+    request<{ items: Asset[]; next_cursor: string }>('/assets?limit=100')
+      .then((p) => {
+        if (active) {
+          setCatalog(p.items);
+          setCatalogCursor(p.next_cursor);
+        }
+      })
+      .catch((e) => {
+        if (active) fail(e);
+      });
+    return () => {
+      active = false;
+    };
   }, [revision, onExpired]);
-  useEffect(() => { if (selected === null) { setDetail(null); setPreview(null); return; } let active = true; setDetail(null); setPreview(null); setHistory([]); setError('');
-    Promise.all([request<{ change: Change }>(`/changes/${selected}`), request<Preview>(`/changes/${selected}/impact`), request<{ items: Event[]; next_cursor: string }>(`/changes/${selected}/history?limit=20`)]).then(([d, p, h]) => { if (active) { setDetail(d.change); setPreview(p); setHistory(h.items); setHistoryCursor(h.next_cursor); } }).catch((e) => { if (active) fail(e); }); return () => { active = false; };
+  useEffect(() => {
+    if (selected === null) {
+      setDetail(null);
+      setPreview(null);
+      return;
+    }
+    let active = true;
+    setDetail(null);
+    setPreview(null);
+    setHistory([]);
+    setError('');
+    Promise.all([
+      request<{ change: Change }>(`/changes/${selected}`),
+      request<Preview>(`/changes/${selected}/impact`),
+      request<{ items: Event[]; next_cursor: string }>(`/changes/${selected}/history?limit=20`),
+    ])
+      .then(([d, p, h]) => {
+        if (active) {
+          setDetail(d.change);
+          setPreview(p);
+          setHistory(h.items);
+          setHistoryCursor(h.next_cursor);
+        }
+      })
+      .catch((e) => {
+        if (active) fail(e);
+      });
+    return () => {
+      active = false;
+    };
   }, [selected, revision, onExpired]);
-  async function more(kind: 'list' | 'catalog' | 'history') { setBusy(true); setError(''); const current = generation.current;
-    try { if (kind === 'list') { const p = await request<{ items: Change[]; next_cursor: string }>(`/changes?limit=20&status=${filter}&before=${cursor}`); if (current === generation.current) { setItems((v) => [...v, ...p.items]); setCursor(p.next_cursor); } }
-      else if (kind === 'catalog') { const p = await request<{ items: Asset[]; next_cursor: string }>(`/assets?limit=100&before=${catalogCursor}`); setCatalog((v) => [...v, ...p.items]); setCatalogCursor(p.next_cursor); }
-      else { const p = await request<{ items: Event[]; next_cursor: string }>(`/changes/${selected}/history?limit=20&before=${historyCursor}`); setHistory((v) => [...v, ...p.items]); setHistoryCursor(p.next_cursor); }
-    } catch (e) { fail(e); } finally { setBusy(false); }
+  async function more(kind: 'list' | 'catalog' | 'history') {
+    setBusy(true);
+    setError('');
+    const current = generation.current;
+    try {
+      if (kind === 'list') {
+        const p = await request<{ items: Change[]; next_cursor: string }>(
+          `/changes?limit=20&status=${filter}&before=${cursor}`,
+        );
+        if (current === generation.current) {
+          setItems((v) => [...v, ...p.items]);
+          setCursor(p.next_cursor);
+        }
+      } else if (kind === 'catalog') {
+        const p = await request<{ items: Asset[]; next_cursor: string }>(
+          `/assets?limit=100&before=${catalogCursor}`,
+        );
+        setCatalog((v) => [...v, ...p.items]);
+        setCatalogCursor(p.next_cursor);
+      } else {
+        const p = await request<{ items: Event[]; next_cursor: string }>(
+          `/changes/${selected}/history?limit=20&before=${historyCursor}`,
+        );
+        setHistory((v) => [...v, ...p.items]);
+        setHistoryCursor(p.next_cursor);
+      }
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(false);
+    }
   }
-  async function save(event: FormEvent) { event.preventDefault(); if (busy) return; setBusy(true); setError(''); setNotice('');
-    try { const body = { ...form, starts_at: new Date(form.starts_at).toISOString(), ends_at: new Date(form.ends_at).toISOString(), version: creating ? 0 : detail?.version }; const fingerprint = JSON.stringify(body); if (pending.current?.fingerprint !== fingerprint) pending.current = { fingerprint, key: crypto.randomUUID() };
-      const d = await request<{ change: Change }>(creating ? '/changes' : `/changes/${selected}`, { method: creating ? 'POST' : 'PUT', body: fingerprint, headers: creating ? { 'Idempotency-Key': pending.current.key } : undefined }); pending.current = null; setCreating(false); setEditing(false); setSelected(d.change.id); setRevision((v) => v + 1); setNotice('Değişiklik taslağı kaydedildi.');
-    } catch (e) { fail(e); } finally { setBusy(false); }
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      const body = {
+        ...form,
+        starts_at: new Date(form.starts_at).toISOString(),
+        ends_at: new Date(form.ends_at).toISOString(),
+        version: creating ? 0 : detail?.version,
+      };
+      const fingerprint = JSON.stringify(body);
+      if (pending.current?.fingerprint !== fingerprint)
+        pending.current = { fingerprint, key: crypto.randomUUID() };
+      const d = await request<{ change: Change }>(creating ? '/changes' : `/changes/${selected}`, {
+        method: creating ? 'POST' : 'PUT',
+        body: fingerprint,
+        headers: creating ? { 'Idempotency-Key': pending.current.key } : undefined,
+      });
+      pending.current = null;
+      setCreating(false);
+      setEditing(false);
+      setSelected(d.change.id);
+      setRevision((v) => v + 1);
+      setNotice('Değişiklik taslağı kaydedildi.');
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(false);
+    }
   }
-  async function perform(action: string) { if (busy || !detail) return; if (note.trim().length < 3) { setError('İşlem için en az 3 karakterlik açıklama yazın.'); return; } setBusy(true); setError(''); setNotice('');
+  async function perform(action: string) {
+    if (busy || !detail) return;
+    if (note.trim().length < 3) {
+      setError('İşlem için en az 3 karakterlik açıklama yazın.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    setNotice('');
     const body = JSON.stringify({ action, note: note.trim(), version: detail.version });
-    if (pending.current?.fingerprint !== body) pending.current = { fingerprint: body, key: crypto.randomUUID() };
-    try { await request(`/changes/${selected}/actions`, { method: 'POST', headers: { 'Idempotency-Key': pending.current.key }, body }); pending.current = null; setNote(''); setRevision((v) => v + 1); setNotice('Değişiklik işlemi kaydedildi.'); }
-    catch (e) { fail(e); if (e instanceof APIError && e.status === 409) { try { setPreview(await request<Preview>(`/changes/${selected}/impact`)); } catch { /* Preserve the actionable write error. */ } } }
-    finally { setBusy(false); }
+    if (pending.current?.fingerprint !== body)
+      pending.current = { fingerprint: body, key: crypto.randomUUID() };
+    try {
+      await request(`/changes/${selected}/actions`, {
+        method: 'POST',
+        headers: { 'Idempotency-Key': pending.current.key },
+        body,
+      });
+      pending.current = null;
+      setNote('');
+      setRevision((v) => v + 1);
+      setNotice('Değişiklik işlemi kaydedildi.');
+    } catch (e) {
+      fail(e);
+      if (e instanceof APIError && e.status === 409) {
+        try {
+          setPreview(await request<Preview>(`/changes/${selected}/impact`));
+        } catch {
+          /* Preserve the actionable write error. */
+        }
+      }
+    } finally {
+      setBusy(false);
+    }
   }
-  function edit() { if (!detail) return; setForm({ title: detail.title, description: detail.description, rollback_plan: detail.rollback_plan, risk: detail.risk, starts_at: localTime(new Date(detail.starts_at)), ends_at: localTime(new Date(detail.ends_at)), root_ids: detail.root_ids }); setEditing(true); setNotice(''); }
-  function open(id: number) { setSelected(id); setCreating(false); setEditing(false); setNote(''); setNotice(''); }
+  function edit() {
+    if (!detail) return;
+    setForm({
+      title: detail.title,
+      description: detail.description,
+      rollback_plan: detail.rollback_plan,
+      risk: detail.risk,
+      starts_at: localTime(new Date(detail.starts_at)),
+      ends_at: localTime(new Date(detail.ends_at)),
+      root_ids: detail.root_ids,
+    });
+    setEditing(true);
+    setNotice('');
+  }
+  function open(id: number) {
+    setSelected(id);
+    setCreating(false);
+    setEditing(false);
+    setNote('');
+    setNotice('');
+  }
   const own = detail && (detail.requester_id === user.id || user.role === 'admin');
-  const review = detail && detail.requester_id !== user.id && ['team_lead', 'admin'].includes(user.role) && detail.status === 'submitted';
-  const available = detail ? [...(own ? ownActions[detail.status] ?? [] : []), ...(review ? ['approve', 'request_changes', 'reject'] : [])] : [];
+  const review =
+    detail &&
+    detail.requester_id !== user.id &&
+    ['team_lead', 'admin'].includes(user.role) &&
+    detail.status === 'submitted';
+  const available = detail
+    ? [
+        ...(own ? (ownActions[detail.status] ?? []) : []),
+        ...(review ? ['approve', 'request_changes', 'reject'] : []),
+      ]
+    : [];
   const currentIds = new Set(catalog.map((a) => a.id));
-  const fields = <><label htmlFor="change-title">Değişiklik başlığı</label><input id="change-title" value={form.title} maxLength={200} required disabled={busy} onChange={(e) => setForm({ ...form, title: e.target.value })} /><label htmlFor="change-description">Uygulama planı</label><textarea id="change-description" value={form.description} maxLength={10000} required disabled={busy} rows={4} onChange={(e) => setForm({ ...form, description: e.target.value })} /><label htmlFor="change-rollback">Geri dönüş planı</label><textarea id="change-rollback" value={form.rollback_plan} maxLength={10000} required disabled={busy} rows={4} onChange={(e) => setForm({ ...form, rollback_plan: e.target.value })} /><div className="form-columns"><div><label htmlFor="change-start">Plan başlangıcı</label><input id="change-start" type="datetime-local" value={form.starts_at} required disabled={busy} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} /></div><div><label htmlFor="change-end">Plan bitişi</label><input id="change-end" type="datetime-local" value={form.ends_at} required disabled={busy} onChange={(e) => setForm({ ...form, ends_at: e.target.value })} /></div></div><label htmlFor="change-risk">Risk seviyesi</label><select id="change-risk" value={form.risk} disabled={busy} onChange={(e) => setForm({ ...form, risk: e.target.value })}><option value="low">Düşük</option><option value="normal">Normal</option><option value="high">Yüksek</option></select><fieldset disabled={busy} className="change-roots"><legend>Doğrudan değiştirilecek varlıklar (1–20)</legend>{catalog.map((a) => <label className="checkbox-label split-candidate" key={a.id}><input type="checkbox" checked={form.root_ids.includes(a.id)} disabled={a.state === 'retired'} onChange={(e) => setForm({ ...form, root_ids: e.target.checked ? [...form.root_ids, a.id] : form.root_ids.filter((id) => id !== a.id) })} /><span>{a.code} · {a.name}{a.state === 'retired' ? ' (kullanım dışı)' : ''}</span></label>)}{form.root_ids.filter((id) => !currentIds.has(id)).map((id) => <label className="checkbox-label split-candidate" key={id}><input type="checkbox" checked onChange={() => setForm({ ...form, root_ids: form.root_ids.filter((v) => v !== id) })} /><span>Mevcut seçili varlık #{id}</span></label>)}</fieldset>{catalogCursor && <button className="secondary" type="button" disabled={busy} onClick={() => more('catalog')}>Daha fazla varlık seç</button>}<button disabled={busy || form.root_ids.length < 1 || form.root_ids.length > 20} type="submit">Değişiklik taslağını kaydet</button></>;
-  return <section className="change-module" aria-labelledby="changes-title"><div className="section-heading"><div><p className="eyebrow">BAKIM VE DEĞİŞİKLİK</p><h2 id="changes-title">Değişiklik yönetimi</h2></div><button disabled={busy} onClick={() => { setCreating(true); setEditing(false); setSelected(null); setForm(blank()); setError(''); setNotice(''); }}>+ Yeni değişiklik</button></div>
-    {error && <p className="failure" role="alert">{error}</p>}{notice && <p className="success" role="status">{notice}</p>}
-    {creating || editing ? <div className="status-card"><button className="secondary" disabled={busy} onClick={() => { setCreating(false); setEditing(false); }}>Vazgeç</button><form onSubmit={save}>{fields}</form></div> : selected !== null ? <div className="status-card"><div className="section-heading"><button className="secondary" disabled={busy} onClick={() => setSelected(null)}>← Değişikliklere dön</button><button className="secondary" disabled={busy} onClick={() => setRevision((v) => v + 1)}>Planı yenile</button></div>{!detail ? <p role="status">Plan yükleniyor…</p> : <>
-      <p className="eyebrow">DEĞİŞİKLİK #{detail.id}</p><h3>{detail.title}</h3><span className="badge">{statuses[detail.status]}</span><dl className="ticket-meta"><div><dt>Plan sahibi</dt><dd>{detail.requester_name}</dd></div><div><dt>Risk</dt><dd>{{ low: 'Düşük', normal: 'Normal', high: 'Yüksek' }[detail.risk]}</dd></div><div><dt>Başlangıç</dt><dd>{date(detail.starts_at)}</dd></div><div><dt>Bitiş</dt><dd>{date(detail.ends_at)}</dd></div></dl>
-      <h4>Uygulama planı</h4><p className="ticket-description">{detail.description}</p><h4>Geri dönüş planı</h4><p className="ticket-description">{detail.rollback_plan}</p>
-      {own && detail.status === 'draft' && <button className="secondary" disabled={busy} onClick={edit}>Taslağı düzenle</button>}
-      {preview && <><h4>Güncel etki ve pencere kontrolü</h4>{preview.stale && <p className="failure" role="status">Varlık grafı önceki onaydan sonra değişmiş. Uygulamadan önce taslağa alıp yeniden CAB onayı isteyin.</p>}<ImpactView impact={preview.impact} />{preview.conflicts.length === 0 ? <p className="success">Güncel hesapta onaylı pencere çakışması yok.</p> : <div className="failure"><p>Onaylı/devam eden değişikliklerle çakışma:</p><ul>{preview.conflicts.map((c) => <li key={c.id}><button className="secondary" onClick={() => open(c.id)}>#{c.id} · {c.title}</button> · {date(c.starts_at)} – {date(c.ends_at)}{c.stale_graph ? ' · eski graf onayı, yeniden incelenmeli' : ''}</li>)}</ul></div>}<p className="muted">Önizleme rezervasyon değildir. Onay sırasında aynı kontrol kilit altında yeniden yapılır.</p></>}
-      {detail.impact && <details><summary>CAB'a sunulan etki kaydı</summary><ImpactView impact={detail.impact} /></details>}
-      {available.length > 0 && <div className="workflow"><h4>İşlem ve karar</h4><label htmlFor="change-note">İşlem açıklaması</label><textarea id="change-note" value={note} maxLength={2000} rows={3} disabled={busy} onChange={(e) => setNote(e.target.value)} /><p className="muted">CAB kararı plan sahibinden bağımsız bir lider/admin tarafından verilir. Uygulama ve geri dönüş adımlarını ekip gerçekleştirir; burada süreç kaydedilir.</p>{detail.status === 'approved' && <p className="muted">Uygulama yalnız planlanan zaman penceresi içinde başlatılabilir.</p>}<div className="action-row">{available.map((a) => <button key={a} disabled={busy || note.trim().length < 3} onClick={() => perform(a)}>{actions[a]}</button>)}</div></div>}
-      <h4>Değiştirilemeyen işlem geçmişi</h4><ol className="assignment-timeline">{history.map((e) => <li key={e.id}><strong>{e.actor_name}</strong> · {actions[e.action] || e.action} → {statuses[e.to_status]} · {date(e.created_at)}<p className="ticket-description">{e.note}</p></li>)}</ol>{historyCursor && <button disabled={busy} className="secondary" onClick={() => more('history')}>Önceki kararlar</button>}
-    </>}</div> : <div className="status-card"><div className="section-heading filters"><div><label htmlFor="change-filter">Değişiklik durumu</label><select id="change-filter" value={filter} disabled={busy} onChange={(e) => setFilter(e.target.value)}><option value="">Tüm durumlar</option>{Object.entries(statuses).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div><button disabled={busy || loading} className="secondary" onClick={() => setRevision((v) => v + 1)}>Değişiklikleri yenile</button></div>{loading && <p role="status">Değişiklikler yükleniyor…</p>}{!loading && items.length === 0 && <p className="muted">Bu filtrede değişiklik yok.</p>}{items.map((c) => <button key={c.id} className="ticket-row" onClick={() => open(c.id)}><span className="row-top">#{c.id}<span className="badge">{statuses[c.status]}</span></span><span className="row-title">{c.title}</span><span className="row-bottom">{c.requester_name} · {date(c.starts_at)}</span></button>)}{cursor && <button disabled={busy || loading} className="secondary" onClick={() => more('list')}>Daha fazla değişiklik</button>}</div>}
-  </section>;
+  const fields = (
+    <>
+      <label htmlFor="change-title">Değişiklik başlığı</label>
+      <input
+        id="change-title"
+        value={form.title}
+        maxLength={200}
+        required
+        disabled={busy}
+        onChange={(e) => setForm({ ...form, title: e.target.value })}
+      />
+      <label htmlFor="change-description">Uygulama planı</label>
+      <textarea
+        id="change-description"
+        value={form.description}
+        maxLength={10000}
+        required
+        disabled={busy}
+        rows={4}
+        onChange={(e) => setForm({ ...form, description: e.target.value })}
+      />
+      <label htmlFor="change-rollback">Geri dönüş planı</label>
+      <textarea
+        id="change-rollback"
+        value={form.rollback_plan}
+        maxLength={10000}
+        required
+        disabled={busy}
+        rows={4}
+        onChange={(e) => setForm({ ...form, rollback_plan: e.target.value })}
+      />
+      <div className="form-columns">
+        <div>
+          <label htmlFor="change-start">Plan başlangıcı</label>
+          <input
+            id="change-start"
+            type="datetime-local"
+            value={form.starts_at}
+            required
+            disabled={busy}
+            onChange={(e) => setForm({ ...form, starts_at: e.target.value })}
+          />
+        </div>
+        <div>
+          <label htmlFor="change-end">Plan bitişi</label>
+          <input
+            id="change-end"
+            type="datetime-local"
+            value={form.ends_at}
+            required
+            disabled={busy}
+            onChange={(e) => setForm({ ...form, ends_at: e.target.value })}
+          />
+        </div>
+      </div>
+      <label htmlFor="change-risk">Risk seviyesi</label>
+      <select
+        id="change-risk"
+        value={form.risk}
+        disabled={busy}
+        onChange={(e) => setForm({ ...form, risk: e.target.value })}
+      >
+        <option value="low">Düşük</option>
+        <option value="normal">Normal</option>
+        <option value="high">Yüksek</option>
+      </select>
+      <fieldset disabled={busy} className="change-roots">
+        <legend>Doğrudan değiştirilecek varlıklar (1–20)</legend>
+        {catalog.map((a) => (
+          <label className="checkbox-label split-candidate" key={a.id}>
+            <input
+              type="checkbox"
+              checked={form.root_ids.includes(a.id)}
+              disabled={a.state === 'retired'}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  root_ids: e.target.checked
+                    ? [...form.root_ids, a.id]
+                    : form.root_ids.filter((id) => id !== a.id),
+                })
+              }
+            />
+            <span>
+              {a.code} · {a.name}
+              {a.state === 'retired' ? ' (kullanım dışı)' : ''}
+            </span>
+          </label>
+        ))}
+        {form.root_ids
+          .filter((id) => !currentIds.has(id))
+          .map((id) => (
+            <label className="checkbox-label split-candidate" key={id}>
+              <input
+                type="checkbox"
+                checked
+                onChange={() =>
+                  setForm({ ...form, root_ids: form.root_ids.filter((v) => v !== id) })
+                }
+              />
+              <span>Mevcut seçili varlık #{id}</span>
+            </label>
+          ))}
+      </fieldset>
+      {catalogCursor && (
+        <button className="secondary" type="button" disabled={busy} onClick={() => more('catalog')}>
+          Daha fazla varlık seç
+        </button>
+      )}
+      <button
+        disabled={busy || form.root_ids.length < 1 || form.root_ids.length > 20}
+        type="submit"
+      >
+        Değişiklik taslağını kaydet
+      </button>
+    </>
+  );
+  return (
+    <section className="change-module" aria-labelledby="changes-title">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">BAKIM VE DEĞİŞİKLİK</p>
+          <h2 id="changes-title">Değişiklik yönetimi</h2>
+        </div>
+        <button
+          disabled={busy}
+          onClick={() => {
+            setCreating(true);
+            setEditing(false);
+            setSelected(null);
+            setForm(blank());
+            setError('');
+            setNotice('');
+          }}
+        >
+          + Yeni değişiklik
+        </button>
+      </div>
+      {error && (
+        <p className="failure" role="alert">
+          {error}
+        </p>
+      )}
+      {notice && (
+        <p className="success" role="status">
+          {notice}
+        </p>
+      )}
+      {creating || editing ? (
+        <div className="status-card">
+          <button
+            className="secondary"
+            disabled={busy}
+            onClick={() => {
+              setCreating(false);
+              setEditing(false);
+            }}
+          >
+            Vazgeç
+          </button>
+          <form onSubmit={save}>{fields}</form>
+        </div>
+      ) : selected !== null ? (
+        <div className="status-card">
+          <div className="section-heading">
+            <button className="secondary" disabled={busy} onClick={() => setSelected(null)}>
+              ← Değişikliklere dön
+            </button>
+            <button className="secondary" disabled={busy} onClick={() => setRevision((v) => v + 1)}>
+              Planı yenile
+            </button>
+          </div>
+          {!detail ? (
+            <p role="status">Plan yükleniyor…</p>
+          ) : (
+            <>
+              <p className="eyebrow">DEĞİŞİKLİK #{detail.id}</p>
+              <h3>{detail.title}</h3>
+              <span className="badge">{statuses[detail.status]}</span>
+              <dl className="ticket-meta">
+                <div>
+                  <dt>Plan sahibi</dt>
+                  <dd>{detail.requester_name}</dd>
+                </div>
+                <div>
+                  <dt>Risk</dt>
+                  <dd>{{ low: 'Düşük', normal: 'Normal', high: 'Yüksek' }[detail.risk]}</dd>
+                </div>
+                <div>
+                  <dt>Başlangıç</dt>
+                  <dd>{date(detail.starts_at)}</dd>
+                </div>
+                <div>
+                  <dt>Bitiş</dt>
+                  <dd>{date(detail.ends_at)}</dd>
+                </div>
+              </dl>
+              <h4>Uygulama planı</h4>
+              <p className="ticket-description">{detail.description}</p>
+              <h4>Geri dönüş planı</h4>
+              <p className="ticket-description">{detail.rollback_plan}</p>
+              {own && detail.status === 'draft' && (
+                <button className="secondary" disabled={busy} onClick={edit}>
+                  Taslağı düzenle
+                </button>
+              )}
+              {preview && (
+                <>
+                  <h4>Güncel etki ve pencere kontrolü</h4>
+                  {preview.stale && (
+                    <p className="failure" role="status">
+                      Varlık grafı önceki onaydan sonra değişmiş. Uygulamadan önce taslağa alıp
+                      yeniden CAB onayı isteyin.
+                    </p>
+                  )}
+                  <ImpactView impact={preview.impact} />
+                  {preview.conflicts.length === 0 ? (
+                    <p className="success">Güncel hesapta onaylı pencere çakışması yok.</p>
+                  ) : (
+                    <div className="failure">
+                      <p>Onaylı/devam eden değişikliklerle çakışma:</p>
+                      <ul>
+                        {preview.conflicts.map((c) => (
+                          <li key={c.id}>
+                            <button className="secondary" onClick={() => open(c.id)}>
+                              #{c.id} · {c.title}
+                            </button>{' '}
+                            · {date(c.starts_at)} – {date(c.ends_at)}
+                            {c.stale_graph ? ' · eski graf onayı, yeniden incelenmeli' : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <p className="muted">
+                    Önizleme rezervasyon değildir. Onay sırasında aynı kontrol kilit altında yeniden
+                    yapılır.
+                  </p>
+                </>
+              )}
+              {detail.impact && (
+                <details>
+                  <summary>CAB'a sunulan etki kaydı</summary>
+                  <ImpactView impact={detail.impact} />
+                </details>
+              )}
+              {available.length > 0 && (
+                <div className="workflow">
+                  <h4>İşlem ve karar</h4>
+                  <label htmlFor="change-note">İşlem açıklaması</label>
+                  <textarea
+                    id="change-note"
+                    value={note}
+                    maxLength={2000}
+                    rows={3}
+                    disabled={busy}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
+                  <p className="muted">
+                    CAB kararı plan sahibinden bağımsız bir lider/admin tarafından verilir. Uygulama
+                    ve geri dönüş adımlarını ekip gerçekleştirir; burada süreç kaydedilir.
+                  </p>
+                  {detail.status === 'approved' && (
+                    <p className="muted">
+                      Uygulama yalnız planlanan zaman penceresi içinde başlatılabilir.
+                    </p>
+                  )}
+                  <div className="action-row">
+                    {available.map((a) => (
+                      <button
+                        key={a}
+                        disabled={busy || note.trim().length < 3}
+                        onClick={() => perform(a)}
+                      >
+                        {actions[a]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <h4>Değiştirilemeyen işlem geçmişi</h4>
+              <ol className="assignment-timeline">
+                {history.map((e) => (
+                  <li key={e.id}>
+                    <strong>{e.actor_name}</strong> · {actions[e.action] || e.action} →{' '}
+                    {statuses[e.to_status]} · {date(e.created_at)}
+                    <p className="ticket-description">{e.note}</p>
+                  </li>
+                ))}
+              </ol>
+              {historyCursor && (
+                <button disabled={busy} className="secondary" onClick={() => more('history')}>
+                  Önceki kararlar
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="status-card">
+          <div className="section-heading filters">
+            <div>
+              <label htmlFor="change-filter">Değişiklik durumu</label>
+              <select
+                id="change-filter"
+                value={filter}
+                disabled={busy}
+                onChange={(e) => setFilter(e.target.value)}
+              >
+                <option value="">Tüm durumlar</option>
+                {Object.entries(statuses).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              disabled={busy || loading}
+              className="secondary"
+              onClick={() => setRevision((v) => v + 1)}
+            >
+              Değişiklikleri yenile
+            </button>
+          </div>
+          {loading && <p role="status">Değişiklikler yükleniyor…</p>}
+          {!loading && items.length === 0 && <p className="muted">Bu filtrede değişiklik yok.</p>}
+          {items.map((c) => (
+            <button key={c.id} className="ticket-row" onClick={() => open(c.id)}>
+              <span className="row-top">
+                #{c.id}
+                <span className="badge">{statuses[c.status]}</span>
+              </span>
+              <span className="row-title">{c.title}</span>
+              <span className="row-bottom">
+                {c.requester_name} · {date(c.starts_at)}
+              </span>
+            </button>
+          ))}
+          {cursor && (
+            <button disabled={busy || loading} className="secondary" onClick={() => more('list')}>
+              Daha fazla değişiklik
+            </button>
+          )}
+        </div>
+      )}
+    </section>
+  );
 }

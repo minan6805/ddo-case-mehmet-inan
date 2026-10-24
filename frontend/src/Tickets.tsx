@@ -1,3 +1,4 @@
+import { formatDate } from './format';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { APIError, request, type User } from './api';
 import { TicketSLA, SLASettings, SLAAlerts } from './SLA';
@@ -21,7 +22,6 @@ const transitions: Record<string, string[]> = {
   open: ['in_progress'], in_progress: ['waiting_customer', 'resolved'],
   waiting_customer: ['in_progress'], resolved: ['in_progress', 'closed'], closed: [],
 };
-const formatDate = (value: string) => new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
 function message(error: unknown) { return error instanceof Error ? error.message : 'İşlem tamamlanamadı.'; }
 
 function CreateTicket({ categories, onCreated, onCancel, onExpired }: {

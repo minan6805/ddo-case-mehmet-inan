@@ -33,7 +33,7 @@ func registerThreads(mux *http.ServeMux, authentication Authenticator, service T
 			}
 			var result tickets.ThreadResult
 			var err error
-			user := r.Context().Value(userContextKey{}).(auth.User)
+			user := currentUser(r)
 			if kind == "merge" {
 				var input struct {
 					TargetID int64 `json:"target_id"`
@@ -61,24 +61,11 @@ func registerThreads(mux *http.ServeMux, authentication Authenticator, service T
 		if !ok {
 			return
 		}
-		limit := 20
-		var before int64
-		var err error
-		if v := r.URL.Query().Get("limit"); v != "" {
-			limit, err = strconv.Atoi(v)
-		}
-		if err != nil || limit < 1 || limit > 100 {
-			writeError(w, 400, "INVALID_PAGINATION", "Sayfa boyutu 1–100 arasında olmalı.")
+		before, limit, ok := pageParams(w, r)
+		if !ok {
 			return
 		}
-		if v := r.URL.Query().Get("before"); v != "" {
-			before, err = strconv.ParseInt(v, 10, 64)
-			if err != nil || before < 1 {
-				writeError(w, 400, "INVALID_PAGINATION", "Sayfa imleci geçersiz.")
-				return
-			}
-		}
-		items, err := service.ThreadHistory(r.Context(), r.Context().Value(userContextKey{}).(auth.User), id, before, limit)
+		items, err := service.ThreadHistory(r.Context(), currentUser(r), id, before, limit)
 		if err != nil {
 			threadError(w, err)
 			return

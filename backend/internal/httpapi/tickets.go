@@ -87,7 +87,7 @@ func registerTickets(mux *http.ServeMux, authentication Authenticator, service T
 		if !decodeJSON(w, r, &input) {
 			return
 		}
-		ticket, err := service.Create(r.Context(), r.Context().Value(userContextKey{}).(auth.User), input, key)
+		ticket, err := service.Create(r.Context(), currentUser(r), input, key)
 		if err != nil {
 			ticketError(w, err)
 			return
@@ -96,25 +96,14 @@ func registerTickets(mux *http.ServeMux, authentication Authenticator, service T
 		writeJSON(w, 201, map[string]any{"ticket": ticket})
 	}))
 	mux.HandleFunc("GET /tickets", protect(func(w http.ResponseWriter, r *http.Request) {
-		options := tickets.ListOptions{Limit: 20}
-		var err error
-		if value := r.URL.Query().Get("limit"); value != "" {
-			options.Limit, err = strconv.Atoi(value)
-		}
-		if err != nil || options.Limit < 1 || options.Limit > 100 {
-			writeError(w, 400, "INVALID_PAGINATION", "Sayfa boyutu 1–100 arasında olmalı.")
+		before, limit, ok := pageParams(w, r)
+		if !ok {
 			return
 		}
-		if value := r.URL.Query().Get("before"); value != "" {
-			options.Before, err = strconv.ParseInt(value, 10, 64)
-			if err != nil || options.Before < 1 {
-				writeError(w, 400, "INVALID_PAGINATION", "Sayfa imleci geçersiz.")
-				return
-			}
-		}
+		options := tickets.ListOptions{Before: before, Limit: limit}
 		options.Status = r.URL.Query().Get("status")
 		options.Queue = r.URL.Query().Get("queue")
-		items, err := service.List(r.Context(), r.Context().Value(userContextKey{}).(auth.User), options)
+		items, err := service.List(r.Context(), currentUser(r), options)
 		if err != nil {
 			ticketError(w, err)
 			return
@@ -131,7 +120,7 @@ func registerTickets(mux *http.ServeMux, authentication Authenticator, service T
 		if !ok {
 			return
 		}
-		ticket, err := service.Get(r.Context(), r.Context().Value(userContextKey{}).(auth.User), id)
+		ticket, err := service.Get(r.Context(), currentUser(r), id)
 		if err != nil {
 			ticketError(w, err)
 			return
@@ -152,7 +141,7 @@ func registerTickets(mux *http.ServeMux, authentication Authenticator, service T
 		if !decodeJSON(w, r, &input) {
 			return
 		}
-		ticket, err := service.UpdateStatus(r.Context(), r.Context().Value(userContextKey{}).(auth.User), id, input.Status)
+		ticket, err := service.UpdateStatus(r.Context(), currentUser(r), id, input.Status)
 		if err != nil {
 			ticketError(w, err)
 			return

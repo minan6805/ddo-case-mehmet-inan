@@ -1,67 +1,21 @@
 package tickets
 
 import (
-	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"destekmasa/internal/auth"
-	"destekmasa/internal/database"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"destekmasa/internal/testdb"
 )
 
 func TestPostgresTicketWorkflow(t *testing.T) {
-	url := os.Getenv("INTEGRATION_DATABASE_URL")
-	if url == "" {
-		t.Skip("run make test-integration")
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
-	defer cancel()
-	admin, err := pgxpool.New(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer admin.Close()
-	random := make([]byte, 8)
-	if _, err = rand.Read(random); err != nil {
-		t.Fatal(err)
-	}
-	schema := "ticket_test_" + hex.EncodeToString(random)
-	if _, err = admin.Exec(ctx, `CREATE SCHEMA `+schema); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		cleanup, stop := context.WithTimeout(context.Background(), 5*time.Second)
-		defer stop()
-		if _, err := admin.Exec(cleanup, `DROP SCHEMA `+schema+` CASCADE`); err != nil {
-			t.Error(err)
-		}
-	}()
-	config, err := pgxpool.ParseConfig(url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	config.ConnConfig.RuntimeParams["search_path"] = schema
-	pool, err := pgxpool.NewWithConfig(ctx, config)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer pool.Close()
-	if err = database.Migrate(ctx, pool); err != nil {
-		t.Fatal(err)
-	}
-	if err = database.SeedDemo(ctx, pool, "DemoDestek2026!"); err != nil {
-		t.Fatal(err)
-	}
+	ctx, pool, _ := testdb.New(t, "ticket_test")
+	var err error
 	if _, err = pool.Exec(ctx, `INSERT INTO users(email,display_name,role_code,password_hash)
         SELECT 'ikinci@destekmasa.local','İkinci Çalışan','employee',password_hash FROM users WHERE email='calisan@destekmasa.local'`); err != nil {
 		t.Fatal(err)

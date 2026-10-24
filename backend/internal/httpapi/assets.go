@@ -37,26 +37,6 @@ func assetError(w http.ResponseWriter, err error) {
 		writeError(w, 503, "ASSET_UNAVAILABLE", "Varlık servisine şu an erişilemiyor.")
 	}
 }
-func pageParams(w http.ResponseWriter, r *http.Request) (int64, int, bool) {
-	limit := 20
-	var before int64
-	var err error
-	if v := r.URL.Query().Get("limit"); v != "" {
-		limit, err = strconv.Atoi(v)
-	}
-	if err != nil || limit < 1 || limit > 100 {
-		writeError(w, 400, "INVALID_PAGINATION", "Sayfa boyutu 1–100 arasında olmalı.")
-		return 0, 0, false
-	}
-	if v := r.URL.Query().Get("before"); v != "" {
-		before, err = strconv.ParseInt(v, 10, 64)
-		if err != nil || before < 1 {
-			writeError(w, 400, "INVALID_PAGINATION", "Sayfa imleci geçersiz.")
-			return 0, 0, false
-		}
-	}
-	return before, limit, true
-}
 func registerAssets(mux *http.ServeMux, authentication Authenticator, service AssetService) {
 	read := func(h http.HandlerFunc) http.HandlerFunc {
 		return requireRole(authentication, []string{"specialist", "team_lead", "asset_manager", "admin"}, h)
@@ -64,13 +44,12 @@ func registerAssets(mux *http.ServeMux, authentication Authenticator, service As
 	write := func(h http.HandlerFunc) http.HandlerFunc {
 		return requireRole(authentication, []string{"asset_manager", "admin"}, h)
 	}
-	actor := func(r *http.Request) auth.User { return r.Context().Value(userContextKey{}).(auth.User) }
 	mux.HandleFunc("GET /assets/owners", write(func(w http.ResponseWriter, r *http.Request) {
 		before, limit, ok := pageParams(w, r)
 		if !ok {
 			return
 		}
-		items, err := service.Owners(r.Context(), actor(r), before, limit)
+		items, err := service.Owners(r.Context(), currentUser(r), before, limit)
 		if err != nil {
 			assetError(w, err)
 			return
@@ -88,7 +67,7 @@ func registerAssets(mux *http.ServeMux, authentication Authenticator, service As
 		if !ok {
 			return
 		}
-		items, err := service.List(r.Context(), actor(r), before, limit, r.URL.Query().Get("kind"))
+		items, err := service.List(r.Context(), currentUser(r), before, limit, r.URL.Query().Get("kind"))
 		if err != nil {
 			assetError(w, err)
 			return
@@ -113,7 +92,7 @@ func registerAssets(mux *http.ServeMux, authentication Authenticator, service As
 		if !decodeJSON(w, r, &input) {
 			return
 		}
-		a, err := service.Create(r.Context(), actor(r), input, key)
+		a, err := service.Create(r.Context(), currentUser(r), input, key)
 		if err != nil {
 			assetError(w, err)
 			return
@@ -125,7 +104,7 @@ func registerAssets(mux *http.ServeMux, authentication Authenticator, service As
 		if !ok {
 			return
 		}
-		a, err := service.Detail(r.Context(), actor(r), id)
+		a, err := service.Detail(r.Context(), currentUser(r), id)
 		if err != nil {
 			assetError(w, err)
 			return
@@ -144,7 +123,7 @@ func registerAssets(mux *http.ServeMux, authentication Authenticator, service As
 		if !decodeJSON(w, r, &input) {
 			return
 		}
-		a, err := service.Update(r.Context(), actor(r), id, input)
+		a, err := service.Update(r.Context(), currentUser(r), id, input)
 		if err != nil {
 			assetError(w, err)
 			return
@@ -165,7 +144,7 @@ func registerAssets(mux *http.ServeMux, authentication Authenticator, service As
 				writeError(w, 400, "INVALID_ID", "Geçerli bir bağımlı varlık numarası gönderin.")
 				return
 			}
-			if err = service.Dependency(r.Context(), actor(r), id, dependent, method == "PUT"); err != nil {
+			if err = service.Dependency(r.Context(), currentUser(r), id, dependent, method == "PUT"); err != nil {
 				assetError(w, err)
 				return
 			}
@@ -177,7 +156,7 @@ func registerAssets(mux *http.ServeMux, authentication Authenticator, service As
 		if !ok {
 			return
 		}
-		impact, err := service.Impact(r.Context(), actor(r), []int64{id})
+		impact, err := service.Impact(r.Context(), currentUser(r), []int64{id})
 		if err != nil {
 			assetError(w, err)
 			return

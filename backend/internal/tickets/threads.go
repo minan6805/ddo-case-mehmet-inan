@@ -12,6 +12,7 @@ import (
 
 	"destekmasa/internal/assignment"
 	"destekmasa/internal/auth"
+
 	"github.com/jackc/pgx/v5"
 )
 
@@ -68,8 +69,7 @@ func finishThread(ctx context.Context, tx pgx.Tx, user auth.User, kind, key stri
 	if ids == nil {
 		ids = []int64{}
 	}
-	var eventID int64
-	err := tx.QueryRow(ctx, `INSERT INTO ticket_operations(kind,source_id,target_id,actor_id,comment_ids) VALUES($1,$2,$3,$4,$5) RETURNING id`, kind, result.SourceID, result.TargetID, user.ID, ids).Scan(&eventID)
+	_, err := tx.Exec(ctx, `INSERT INTO ticket_operations(kind,source_id,target_id,actor_id,comment_ids) VALUES($1,$2,$3,$4,$5)`, kind, result.SourceID, result.TargetID, user.ID, ids)
 	if err != nil {
 		return err
 	}

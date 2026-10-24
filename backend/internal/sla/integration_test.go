@@ -2,61 +2,17 @@ package sla
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
-	"os"
 	"sync"
 	"testing"
 	"time"
 
-	"destekmasa/internal/database"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"destekmasa/internal/testdb"
 )
 
 func TestPostgresSLAEngine(t *testing.T) {
-	url := os.Getenv("INTEGRATION_DATABASE_URL")
-	if url == "" {
-		t.Skip("run make test-integration")
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
-	defer cancel()
-	admin, err := pgxpool.New(ctx, url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer admin.Close()
-	nonce := make([]byte, 8)
-	if _, err = rand.Read(nonce); err != nil {
-		t.Fatal(err)
-	}
-	schema := "sla_test_" + hex.EncodeToString(nonce)
-	if _, err = admin.Exec(ctx, `CREATE SCHEMA `+schema); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		cleanup, stop := context.WithTimeout(context.Background(), 5*time.Second)
-		defer stop()
-		if _, err := admin.Exec(cleanup, `DROP SCHEMA `+schema+` CASCADE`); err != nil {
-			t.Error(err)
-		}
-	}()
-	config, err := pgxpool.ParseConfig(url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	config.ConnConfig.RuntimeParams["search_path"] = schema
-	pool, err := pgxpool.NewWithConfig(ctx, config)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer pool.Close()
-	if err = database.Migrate(ctx, pool); err != nil {
-		t.Fatal(err)
-	}
-	if err = database.SeedDemo(ctx, pool, "DemoDestek2026!"); err != nil {
-		t.Fatal(err)
-	}
+	ctx, pool, _ := testdb.New(t, "sla_test")
+	var err error
 	var ownerID, adminID, otherID int64
 	if err = pool.QueryRow(ctx, `SELECT id FROM users WHERE role_code='employee'`).Scan(&ownerID); err != nil {
 		t.Fatal(err)

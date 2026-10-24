@@ -1,3 +1,4 @@
+import { formatDate } from './format';
 import { useEffect, useState } from 'react';
 import { APIError, request, type User } from './api';
 
@@ -11,7 +12,7 @@ type Alert = { id: number; ticket_id: number; title: string; timer: string; stag
 const states: Record<string, string> = { running: 'Süre devam ediyor', completed: 'Tamamlandı', paused: 'Duraklatıldı', warning: '%80 uyarısı', breached: 'Süre aşıldı', stopped: 'Durduruldu' };
 const priorities: Record<string, string> = { low: 'Düşük', normal: 'Normal', high: 'Yüksek', critical: 'Kritik' };
 const categories: Record<string, string> = { general: 'Genel destek', network: 'Ağ ve bağlantı', hardware: 'Donanım', software: 'Yazılım' };
-const dateTime = (value: string) => new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Istanbul' }).format(new Date(value));
+const dateTime = (value: string) => formatDate(value, 'Europe/Istanbul');
 const message = (error: unknown) => error instanceof Error ? error.message : 'İşlem tamamlanamadı.';
 const toTime = (minute: number) => `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
 const toMinute = (value: string) => { const [hour, minute] = value.split(':').map(Number); return hour * 60 + minute; };
