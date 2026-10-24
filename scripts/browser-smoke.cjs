@@ -1,4 +1,4 @@
-// Optional browser proof. Requires Playwright; see TESTING.md.
+// Optional browser proof. Requires Playwright; see README.md.
 const { chromium } = require('playwright');
 const fs = require('node:fs');
 const path = require('node:path');

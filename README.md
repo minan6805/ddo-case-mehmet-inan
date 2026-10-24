@@ -19,7 +19,7 @@ Mevcut `.env` dosyan varsa kopyalama adımını atla; aşağıdaki demo/oturum a
 - Başlatma: PostgreSQL hazır → API migrasyon/demo seed → arayüz.
 - Durdurma: `docker compose down`. Veriler Docker volume içinde kalır.
 
-**3001 geçicidir:** yerelde 3000 dolu. Teslimden önce şartnamedeki 3000'e dönülecek; [TESTING.md](TESTING.md) kontrol listesi içerir.
+**3001 geçicidir:** yerelde 3000 dolu. Teslimden önce şartnamedeki 3000'e dönülecek.
 
 `.env` Git'e eklenmez. `DEMO_SEED=true`, eksik demo kullanıcıları otomatik oluşturur; mevcut parolaları değiştirmez. `DEMO_PASSWORD` varsayılanı `DemoDestek2026!`; yerel demo içindir. `SESSION_TTL=8h` oturum süresini belirler. `COOKIE_SECURE=false` yerel HTTP içindir; HTTPS ortamında true olmalı. Demo seed kapatılabilir (`DEMO_SEED=false`). Bu ayarlar internet ortamına üretim kurulumu yapıldığı anlamına gelmez.
 
@@ -82,7 +82,7 @@ Kısa k6 ölçümü: 10 VU, 20 saniye; SLA preview ucunda 3.930 hesaplama isteğ
 
 ## Doğrulama
 
-[TESTING.md](TESTING.md) komutları ve kanıt sınırlarını açıklar. `make smoke` temel bağlantı, `make verify-auth` canlı giriş/yetki, `make verify-tickets` temel talep akışı, `make verify-sla` SLA API, `make prove-sla` kalıcı SLA kanıtı, `make load` kısa k6 ölçümü, `make verify-assignment` canlı atama API ve T-2 PostgreSQL kanıtı, `make prove-assignment` yalnız atama PostgreSQL grubu, `make test-integration` ayrı PostgreSQL ile testlerdir. `make verify` tamamlanmamış zorunlu özellikleri FAIL gösterir; bu aşamada teslim doğrulaması başarılı değildir.
+`make smoke` temel bağlantı, `make verify-auth` canlı giriş/yetki, `make verify-tickets` temel talep akışı, `make verify-sla` SLA API, `make prove-sla` kalıcı SLA kanıtı, `make load` kısa k6 ölçümü, `make verify-assignment` canlı atama API ve T-2 PostgreSQL kanıtı, `make prove-assignment` yalnız atama PostgreSQL grubu, `make test-integration` ayrı PostgreSQL ile testlerdir. `make verify` tamamlanmamış zorunlu özellikleri FAIL gösterir; bu aşamada teslim doğrulaması başarılı değildir.
 
 ## Talep mesajları ve iç notlar
 
