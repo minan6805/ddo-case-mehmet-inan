@@ -45,7 +45,9 @@ jobs:
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
           go-version-file: backend/go.mod
-          cache-dependency-path: backend/go.sum
+          # Hosted runners can contain read-only Go telemetry modules.
+          # Avoid restoring archives over these files.
+          cache: false
       - name: Check Go formatting
         run: |
           unformatted_files="$(gofmt -l .)"

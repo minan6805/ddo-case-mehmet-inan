@@ -10,6 +10,8 @@
 
 Her iş kendi GitHub runner ortamını kullanır. Test veritabanları ve demo servisleri bu ortamlarda oluşturulur; Compose işi çıkışta kendi volume'lerini temizler. Örnek ayarlar `.env.example` üzerinden alınır. Workflow depo içeriğini okuma izniyle çalışır; kullanılan action'lar commit SHA'sına sabitlenmiştir. Action çalışma ortamı Node.js 24'tür; arayüzün derleme ortamı Node.js 22 olarak tanımlıdır.
 
+Go işinde setup-go önbelleği kapalıdır; runner üzerinde hazır bulunan salt okunur Go modülleriyle önbellek arşivinin çakışması önlenir. Derleme, lint ve bütün testler her çalıştırmada yürütülür.
+
 ## Lint
 
 ```bash
