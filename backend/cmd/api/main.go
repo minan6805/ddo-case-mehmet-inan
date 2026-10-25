@@ -15,6 +15,7 @@ import (
 	"destekmasa/internal/auth"
 	"destekmasa/internal/changes"
 	"destekmasa/internal/knowledge"
+	"destekmasa/internal/reports"
 	"destekmasa/internal/sla"
 	"destekmasa/internal/tickets"
 	"time"
@@ -144,7 +145,7 @@ func run(logger *slog.Logger) error {
 	ticketService := tickets.NewWithEngines(pool, slaEngine, routingEngine)
 	router := httpapi.NewServicesRouter(httpapi.Services{
 		Database: pool, Authentication: authService, AuthOptions: httpapi.AuthOptions{SecureCookie: secure},
-		Knowledge: knowledge.New(pool), Comments: ticketService, Email: ticketService, Threads: ticketService, Assets: assets.New(pool), Changes: changes.New(pool, nil),
+		Reports: reports.New(pool, nil), Knowledge: knowledge.New(pool), Comments: ticketService, Email: ticketService, Threads: ticketService, Assets: assets.New(pool), Changes: changes.New(pool, nil),
 		Tickets: ticketService, SLA: slaEngine, Assignment: routingEngine,
 	})
 	server := &http.Server{

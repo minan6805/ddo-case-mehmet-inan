@@ -127,3 +127,7 @@ Yorum satırını taşımak immutable geçmişi bozar; kopyalamak çift kimlik v
 ## ADR-016 — Bilgi bankasında taslak ve kontrollü yayın
 
 Destek uzmanı kendi taslağını hazırlar; lider/yönetici yayını yönetir. Okuyucu görünürlüğü SQL'de sayfalamadan önce uygulanır. Yayındaki içerik değişmeden taslağa alınır; düzenleme ve yeniden yayın açık işlemlerdir. Güncelleme satır kilidi ve sürüm kontrolüyle, oluşturma kullanıcı kapsamlı Idempotency-Key ile korunur. Makale ve audit atomiktir. Düz metin ve literal alt metin araması bu ölçek için yeterlidir; dil kökü ve benzer talep önerisi bu aşamanın kapsamında değildir.
+
+## ADR-017 — Raporlarda tek veri anı ve açık ölçüm kapsamı
+
+Yönetim raporu yalnız lider/admin erişimine açıktır. Oluşturulma tarihine göre İstanbul günleriyle seçilen talep grubunun güncel durumları raporlanır; dönem içinde kapanan bütün işleri ölçtüğü iddia edilmez. Global kapasiteyi doğru göstermek için güncel uzman iş yükü bu filtreden ayrı tutulur. Bütün sorgular salt okunur REPEATABLE READ transaction'ında aynı veri anını kullanır. SLA ortalamaları yalnız tamamlanan sayaç örneklerinden, geçmiş olay sayıları tekil taleplerden hesaplanır; kontrol zamanları ve örnek sayıları görünürdür. Böylece aynı talebin birden fazla olayı toplamları şişirmez; rapor okumak üretim sayaçlarını değiştirmez.

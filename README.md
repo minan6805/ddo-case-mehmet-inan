@@ -44,6 +44,7 @@ Demo kullanıcıları `DEMO_SEED=true` ile oluşturulur. `DEMO_PASSWORD` ilk olu
 - **Otomatik atama:** Beceri, vardiya, izin ve kapasiteye göre uzman seçimi; uygun uzman yoksa kuyrukta bekleme ve sonradan yeniden atama.
 - **E-posta işleme:** Simülatörden yeni talep veya mevcut talebe yanıt, ek dosyalar ve aynı Message-ID için tekrar önleme. Yetkili kullanıcılar talepleri birleştirebilir veya mesajları yeni talebe bölebilir.
 - **Bilgi bankası:** Başlık/içerik araması ve kategori filtresi; uzman taslakları, lider/yönetici yayını ve arşivleme.
+- **Raporlar:** Lider/yönetici için tarih ve kategoriye göre talep dağılımları, SLA sonuçları ve güncel uzman iş yükü.
 - **Varlık envanteri:** Varlıklar arasındaki bağımlılık grafı ve döngülerde de sonlu çalışan etki analizi.
 - **Değişiklik planlama:** Bakım penceresi, risk ve geri dönüş planı; bağımsız lider/yönetici onayı; ortak varlıkları etkileyen çakışan planların engellenmesi ve karar geçmişi.
 
@@ -72,13 +73,13 @@ Teknik kararlar: [DECISIONS.md](DECISIONS.md).
 | `make simulate-email` | Tekrarlanabilir e-posta örnekleri |
 | `make load` | SLA hesaplama ucunda kısa yük testi |
 
-`make verify`, eksik gereksinimler tamamlanana kadar başarısız sonuç verir. 25 Ekim doğrulamasında 118 PostgreSQL entegrasyon senaryosu, Go race/vet kontrolleri, arayüz derlemesi ve dört tarayıcı senaryosu (mobil kontroller dahil) başarılıdır. Yük testinin kapsamı ve ölçümleri: [docs/LOAD-RESULTS.md](docs/LOAD-RESULTS.md).
+`make verify`, F-1–F-7 özelliklerini ve T-1–T-4 çekirdek görevlerini denetler; herhangi bir kontrol başarısızsa sıfırdan farklı çıkış kodu döndürür. 25 Ekim doğrulamasında 129 PostgreSQL entegrasyon senaryosu, Go race/vet kontrolleri, arayüz derlemesi ve raporlar dahil beş tarayıcı senaryosu (mobil kontroller dahil) başarılıdır. Yük testinin kapsamı ve ölçümleri: [docs/LOAD-RESULTS.md](docs/LOAD-RESULTS.md).
 
 API istek örnekleri: [requests.http](requests.http).
 
 ## Kalan işler ve sınırlar
 
-- Raporlar ve günlük 800 taleplik tam simülatör.
+- Günlük 800 taleplik tam simülatör.
 - CI/lint, OpenAPI, indeks ölçümleri ve son teslim kontrolleri.
 - E-posta akışı simülatörle çalışır; gerçek SMTP/IMAP bağlantısı yoktur.
 - Bakım planlarının uygulanması uygulama dışında yapılır; uygulama planı, onayı ve sonucu kaydeder.
@@ -87,6 +88,7 @@ API istek örnekleri: [requests.http](requests.http).
 
 ## Teknik belgeler
 
+- [Raporlar](docs/REPORTS.md)
 - [Bilgi bankası](docs/KNOWLEDGE.md)
 - [SLA kuralları](docs/SLA.md)
 - [Otomatik atama](docs/ASSIGNMENT.md)

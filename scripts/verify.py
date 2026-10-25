@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Live checks. Full acceptance remains FAIL until every required feature exists."""
+"""Live functional checks and PostgreSQL proofs for the F/T identifiers."""
 import argparse
 import http.cookiejar
 import json
@@ -12,6 +12,7 @@ import urllib.request
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 
 def load_settings():
@@ -38,6 +39,7 @@ def setting(name, fallback):
 parser = argparse.ArgumentParser()
 parser.add_argument('--full', action='store_true')
 parser.add_argument('--knowledge', action='store_true')
+parser.add_argument('--reports', action='store_true')
 parser.add_argument('--auth', action='store_true')
 parser.add_argument('--tickets', action='store_true')
 parser.add_argument('--sla', action='store_true')
@@ -758,6 +760,69 @@ def verify_changes():
                 pass
 
 
+def verify_reports():
+    participants = []
+    ticket_id = None
+    leader = None
+    try:
+        for name in ['lider', 'calisan', 'uzman', 'varlik', 'admin']:
+            opener, _ = client()
+            expect(call(opener, '/auth/login', 'POST', {'email': name + '@destekmasa.local', 'password': password})[0], 200, 'Rapor girişi')
+            participants.append(opener)
+        leader, employee, staff, asset_manager, admin = participants
+        anonymous, _ = client()
+        expect(call(anonymous, '/reports')[0], 401, 'Anonim rapor erişimi')
+        for opener in [employee, staff, asset_manager]:
+            expect(call(opener, '/reports')[0], 403, 'Yetkisiz rapor erişimi')
+        expect(call(admin, '/reports')[0], 200, 'Yönetici raporu')
+        for query in ['from=bad&to=2026-10-25', 'from=2026-01-01', 'from=2024-01-01&to=2025-01-01', 'category=missing-category']:
+            expect(call(leader, '/reports?' + query)[0], 400, 'Rapor filtresi doğrulaması')
+        status, created = call(employee, '/tickets', 'POST', {'title': '[Doğrulama] Rapor verisi', 'description': 'Gerçek API kayıtlarıyla rapor tutarlılığı', 'category': 'software', 'priority': 'critical'}, {'Idempotency-Key': str(uuid.uuid4())})
+        expect(status, 201, 'Rapor için talep')
+        ticket_id = created['ticket']['id']
+        day = datetime.fromisoformat(created['ticket']['created_at'].replace('Z', '+00:00')).astimezone(ZoneInfo('Europe/Istanbul')).date().isoformat()
+        status, report = call(leader, '/reports?' + urllib.parse.urlencode({'from': day, 'to': day, 'category': 'software'}))
+        expect(status, 200, 'Filtreli rapor')
+        tickets_in_range = []
+        cursor = ''
+        while True:
+            status, page = call(leader, '/tickets?limit=100' + ('&before=' + cursor if cursor else ''))
+            expect(status, 200, 'Bağımsız talep sayımı')
+            for ticket in page['items']:
+                created_day = datetime.fromisoformat(ticket['created_at'].replace('Z', '+00:00')).astimezone(ZoneInfo('Europe/Istanbul')).date().isoformat()
+                if created_day == day and ticket['category'] == 'software':
+                    tickets_in_range.append(ticket)
+            cursor = page['next_cursor']
+            if not cursor:
+                break
+        if ticket_id not in {t['id'] for t in tickets_in_range} or report['summary']['total'] != len(tickets_in_range):
+            raise AssertionError('Tarih/kategori toplamı gerçek taleplerle eşleşmedi')
+        for section, field in [('statuses', 'status'), ('priorities', 'priority'), ('categories', 'category')]:
+            for bucket in report[section]:
+                if bucket['count'] != sum(t[field] == bucket['code'] for t in tickets_in_range):
+                    raise AssertionError('Dağılım gerçek taleplerle eşleşmedi: ' + section)
+        if sum(d['count'] for d in report['daily']) != report['summary']['total']:
+            raise AssertionError('Günlük toplam tutarsız')
+        if report['sla']['tracked'] + report['sla']['missing'] != report['summary']['total']:
+            raise AssertionError('SLA örnek sayısı tutarsız')
+        if sum(e['active'] for e in report['workload']['experts']) + report['workload']['unassigned_active'] != report['workload']['total_active']:
+            raise AssertionError('Global iş yükü tutarsız')
+        status, empty = call(leader, '/reports?from=1901-01-01&to=1901-01-02')
+        expect(status, 200, 'Boş rapor')
+        if empty['summary']['total'] != 0 or len(empty['daily']) != 2 or empty['sla']['average_response_minutes'] is not None:
+            raise AssertionError('Boş raporda sıfır/null bekleniyordu')
+    finally:
+        if ticket_id and leader:
+            status, result = call(leader, f'/tickets/{ticket_id}')
+            if status == 200:
+                current = result['ticket']['status']
+                transitions = {'open': ['in_progress', 'resolved', 'closed'], 'in_progress': ['resolved', 'closed'], 'waiting_customer': ['in_progress', 'resolved', 'closed'], 'resolved': ['closed'], 'closed': []}
+                for target in transitions[current]:
+                    expect(call(leader, f'/tickets/{ticket_id}/status', 'PATCH', {'status': target})[0], 200, 'Rapor talebi temizliği')
+        for opener in participants:
+            call(opener, '/auth/logout', 'POST')
+
+
 def verify_knowledge():
     participants = []
     article = None
@@ -866,8 +931,6 @@ if args.changes or args.full:
     check('F-6', verify_changes)
 if args.t4 or args.full:
     check('T-4', verify_t4_proof)
-if args.full:
-    for name in ['F-7']:
-        print(f'{name:<16} FAIL     Henüz uygulanmadı; kabul testi bekleniyor')
-        failed = True
+if args.reports or args.full:
+    check('F-7', verify_reports)
 sys.exit(1 if failed else 0)

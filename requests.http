@@ -298,3 +298,12 @@ PUT http://localhost:3001/api/knowledge/1
 Content-Type: application/json
 
 {"title":"VPN bağlantısı","body":"İnternet bağlantısını kontrol edin. Sorun sürerse hata mesajıyla destek talebi açın.","category":"network","status":"published","version":1}
+
+### Lider/yönetici raporu — varsayılan İstanbul'da bugün dahil son 30 gün
+GET {{baseUrl}}/reports
+
+### Oluşturulma tarihi ve kategori filtresi (iki tarih de dahil)
+GET {{baseUrl}}/reports?from=2026-10-01&to=2026-10-25&category=network
+
+### Geçersiz tarih aralığı — 400
+GET {{baseUrl}}/reports?from=2026-10-25&to=2026-10-01

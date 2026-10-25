@@ -1,4 +1,4 @@
-.PHONY: verify-knowledge prove-knowledge up down logs smoke verify test test-integration verify-auth verify-tickets verify-sla prove-sla verify-assignment prove-assignment verify-comments verify-email verify-t3 prove-t3 simulate-email prove-email load reset-demo verify-assets prove-assets verify-changes verify-t4 prove-t4
+.PHONY: verify-reports prove-reports verify-knowledge prove-knowledge up down logs smoke verify test test-integration verify-auth verify-tickets verify-sla prove-sla verify-assignment prove-assignment verify-comments verify-email verify-t3 prove-t3 simulate-email prove-email load reset-demo verify-assets prove-assets verify-changes verify-t4 prove-t4
 
 up:
 	docker compose up --build -d --wait
@@ -87,3 +87,9 @@ verify-knowledge:
 
 prove-knowledge:
 	TEST_PACKAGE=./internal/knowledge TEST_RUN=TestPostgresKnowledge sh scripts/test-integration.sh
+
+verify-reports:
+	python3 scripts/verify.py --reports
+
+prove-reports:
+	TEST_PACKAGE=./internal/reports TEST_RUN=TestPostgresReports sh scripts/test-integration.sh

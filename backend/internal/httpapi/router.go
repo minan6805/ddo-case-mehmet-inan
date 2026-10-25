@@ -56,6 +56,7 @@ type Services struct {
 	Email          EmailService
 	Threads        ThreadService
 	Assets         AssetService
+	Reports        ReportService
 	Knowledge      KnowledgeService
 	Changes        ChangeService
 }
@@ -68,6 +69,9 @@ func NewServicesRouter(services Services) http.Handler {
 	mux := http.NewServeMux()
 	if service != nil {
 		registerAuth(mux, service, options)
+		if services.Reports != nil {
+			registerReports(mux, service, services.Reports)
+		}
 		if services.Knowledge != nil {
 			registerKnowledge(mux, service, services.Knowledge)
 		}
