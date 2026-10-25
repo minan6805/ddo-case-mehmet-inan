@@ -123,3 +123,7 @@ Gerçek posta altyapısı yerine lider/admin oturumu gerektiren message/rfc822 i
 ## ADR-015 — Değişmez yorum ve ayrı güncel konumla birleştirme/bölme
 
 Yorum satırını taşımak immutable geçmişi bozar; kopyalamak çift kimlik ve ek erişimi sorunları üretir. Özgün yorum değişmez, comment_locations güncel talebi tutar. Okuma ve ek yetkisi bu konuma göre değerlendirilir. Birleştirme yalnız aynı talep sahibinde yapılır; kaynak kapanır, eski alias'lar düzleştirilir, hedef SLA korunur ve kapasite boşalır. Bölme yeni SLA/atamalı iş açar; açıklama iç nottan üretilmez. Tüm işlem mevcut takvim → atama → talep kilit sırasıyla, Idempotency-Key ve append-only işlem geçmişi/audit ile transaction içindedir. Geri alma API'si yoktur. Birleştirme/bölmeden sonra e-posta makbuzunun tekrar yanıtındaki bağlantı mesajın güncel konumuna gider.
+
+## ADR-016 — Bilgi bankasında taslak ve kontrollü yayın
+
+Destek uzmanı kendi taslağını hazırlar; lider/yönetici yayını yönetir. Okuyucu görünürlüğü SQL'de sayfalamadan önce uygulanır. Yayındaki içerik değişmeden taslağa alınır; düzenleme ve yeniden yayın açık işlemlerdir. Güncelleme satır kilidi ve sürüm kontrolüyle, oluşturma kullanıcı kapsamlı Idempotency-Key ile korunur. Makale ve audit atomiktir. Düz metin ve literal alt metin araması bu ölçek için yeterlidir; dil kökü ve benzer talep önerisi bu aşamanın kapsamında değildir.

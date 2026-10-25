@@ -12,3 +12,19 @@ __pycache__/
 /docs/OGRENME.md
 
 /TESTING.md
+
+# Local agent instructions and machine-specific files
+/AGENTS.md
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+
+# Temporary files and generated test reports
+*.tmp
+*.bak
+*.swp
+*~
+coverage/
+playwright-report/
+test-results/

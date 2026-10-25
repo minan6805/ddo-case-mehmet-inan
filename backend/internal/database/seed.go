@@ -98,5 +98,25 @@ func SeedDemo(ctx context.Context, pool *pgxpool.Pool, password string) error {
 			return err
 		}
 	}
+
+	marker, err = tx.Exec(ctx, `INSERT INTO knowledge_seed_state(name) VALUES('baseline-v1') ON CONFLICT DO NOTHING`)
+	if err != nil {
+		return err
+	}
+	if marker.RowsAffected() > 0 {
+		_, err = tx.Exec(ctx, `INSERT INTO knowledge_articles(title,body,category_code,status,author_id)
+   SELECT v.title,v.body,v.category,'published',u.id FROM (VALUES
+    ('VPN bağlantısı için ilk kontroller','1. İnternet bağlantınızı kontrol edin.
+2. Kurumun VPN uygulamasını açın ve sunucu adresini doğrulayın.
+3. Hata sürerse hata mesajıyla bir ağ destek talebi oluşturun. Parolanızı paylaşmayın.','network'),
+    ('Yazıcı çıktı vermiyorsa','1. Yazıcının açık ve bağlı olduğunu kontrol edin.
+2. Doğru yazıcıyı seçtiğinizden emin olun.
+3. Kağıt ve ekrandaki hata uyarılarını kontrol edin. Sorun sürerse donanım talebi açın.','hardware'),
+    ('Destek talebi nasıl hazırlanır?','Sorunun başladığı zamanı, gördüğünüz hata mesajını ve denediğiniz adımları yazın. Uygun kategoriyi seçin; parola veya kişisel gizli bilgi eklemeyin.','general')
+   ) AS v(title,body,category) CROSS JOIN users u WHERE u.email='lider@destekmasa.local'`)
+		if err != nil {
+			return err
+		}
+	}
 	return tx.Commit(ctx)
 }

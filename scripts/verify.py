@@ -37,6 +37,7 @@ def setting(name, fallback):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--full', action='store_true')
+parser.add_argument('--knowledge', action='store_true')
 parser.add_argument('--auth', action='store_true')
 parser.add_argument('--tickets', action='store_true')
 parser.add_argument('--sla', action='store_true')
@@ -757,6 +758,67 @@ def verify_changes():
                 pass
 
 
+def verify_knowledge():
+    participants = []
+    article = None
+    leader = None
+    try:
+        for name in ['uzman', 'lider', 'calisan', 'varlik']:
+            opener, _ = client()
+            expect(call(opener, '/auth/login', 'POST', {'email': name + '@destekmasa.local', 'password': password})[0], 200, 'Bilgi bankası girişi')
+            participants.append(opener)
+        staff, leader, employee, manager = participants
+        token = uuid.uuid4().hex
+        body = {'title': '[Doğrulama] Bilgi bankası ' + token, 'body': 'Aranabilir çözüm ' + token + ' <script>alert(1)</script>', 'category': 'network', 'status': 'draft', 'version': 0}
+        key = {'Idempotency-Key': str(uuid.uuid4())}
+        expect(call(employee, '/knowledge', 'POST', body, key)[0], 403, 'Çalışan yazamaz')
+        expect(call(manager, '/knowledge', 'POST', body, key)[0], 403, 'Varlık yöneticisi yazamaz')
+        status, result = call(staff, '/knowledge', 'POST', body, key)
+        expect(status, 201, 'Taslak oluşturma')
+        article = result['article']
+        path = f"/knowledge/{article['id']}"
+        status, duplicate = call(staff, '/knowledge', 'POST', body, key)
+        expect(status, 201, 'Taslak tekrarı')
+        if duplicate['article']['id'] != article['id']:
+            raise AssertionError('Çift makale oluştu')
+        expect(call(employee, path)[0], 404, 'Taslak gizliliği')
+        query = '/knowledge?q=' + token + '&category=network&limit=1'
+        status, hidden = call(employee, query)
+        expect(status, 200, 'Taslak araması')
+        if hidden['items']:
+            raise AssertionError('Taslak aramada sızdı')
+        edit = {k: article[k] for k in ['title', 'body', 'category', 'status', 'version']}
+        edit['status'] = 'published'
+        expect(call(staff, path, 'PUT', edit)[0], 403, 'Uzman yayımlayamaz')
+        status, result = call(leader, path, 'PUT', edit)
+        expect(status, 200, 'Lider yayımlaması')
+        article = result['article']
+        expect(call(employee, path)[0], 200, 'Yayımlanmış makale')
+        status, found = call(employee, query)
+        expect(status, 200, 'Yayımlanmış arama')
+        if len(found['items']) != 1 or found['items'][0]['id'] != article['id']:
+            raise AssertionError('Arama makaleyi bulmadı')
+        expect(call(leader, path, 'PUT', edit)[0], 409, 'Eski sürüm reddi')
+        edit = {k: article[k] for k in ['title', 'body', 'category', 'status', 'version']}
+        edit['body'] = 'Onaylanmamış değişiklik'
+        expect(call(leader, path, 'PUT', edit)[0], 400, 'Yayımlanmış içerik korunur')
+        edit['body'] = article['body']
+        edit['status'] = 'draft'
+        status, result = call(leader, path, 'PUT', edit)
+        expect(status, 200, 'Yeniden taslak')
+        article = result['article']
+        expect(call(employee, path)[0], 404, 'Yayından kaldırma')
+    finally:
+        if article and leader:
+            status, result = call(leader, f"/knowledge/{article['id']}")
+            if status == 200:
+                edit = {k: result['article'][k] for k in ['title', 'body', 'category', 'status', 'version']}
+                edit['status'] = 'archived'
+                expect(call(leader, f"/knowledge/{article['id']}", 'PUT', edit)[0], 200, 'Makale temizliği')
+        for opener in participants:
+            call(opener, '/auth/logout', 'POST')
+
+
 def verify_t4_proof():
     path = Path('/tmp/destekmasa-assignment-proof.log') if args.full else Path('/tmp/ddo-t4-proof.log')
     if not args.full:
@@ -796,6 +858,8 @@ if args.threads or args.full:
     check('THREADS', verify_threads)
 if args.t3 or args.full:
     check('T-3', verify_t3_proof)
+if args.knowledge or args.full:
+    check('F-4', verify_knowledge)
 if args.assets or args.full:
     check('F-5', verify_assets)
 if args.changes or args.full:
@@ -803,7 +867,7 @@ if args.changes or args.full:
 if args.t4 or args.full:
     check('T-4', verify_t4_proof)
 if args.full:
-    for name in ['F-4', 'F-7']:
+    for name in ['F-7']:
         print(f'{name:<16} FAIL     Henüz uygulanmadı; kabul testi bekleniyor')
         failed = True
 sys.exit(1 if failed else 0)

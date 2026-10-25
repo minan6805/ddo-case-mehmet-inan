@@ -1,31 +1,28 @@
 # DDO Projesi — Mehmet İnan
 
-DDO IT yardım masası projesi. **Geliştirme aşamasında: servis bağlantısı, giriş/çıkış, rol kontrolü, temel talep akışı, iş takvimli SLA, otomatik atama motoru ve görünürlük kontrollü talep mesajları T-3 e-posta/birleştirme/bölme, varlık envanteri ve T-4 değişiklik/onay akışı.**
+DestekMasa, bir işyerindeki IT destek taleplerini yönetmek için geliştirilen yardım masası uygulamasıdır. Çalışanlar talep açar; destek ekibi talepleri takip eder. Uygulama SLA sürelerini hesaplar, uygun uzmana atama yapar ve varlıkları etkileyen bakım planları için onay sürecini yönetir.
 
 ## Kurulum
 
-Gerekenler: Docker ve Docker Compose. Yerel Go/Node kurulumu gerekmez. İlk derlemede internet gerekir.
+Docker ve Docker Compose gerekir. Yerel Go veya Node.js kurulumu gerekmez; ilk derlemede internet bağlantısı gerekir.
 
 ```bash
 cp .env.example .env
-docker compose up --build
+docker compose up --build -d --wait
 ```
 
-Mevcut `.env` dosyan varsa kopyalama adımını atla; aşağıdaki demo/oturum ayarları tanımlı değilse Compose yerel varsayılanları kullanır.
+Mevcut `.env` dosyanız varsa ilk komutu atlayın.
 
 - Arayüz: http://localhost:3001
-- Backend sağlık ucu: http://localhost:8080/health
-- PostgreSQL host'a açılmaz; Compose ağından erişilir.
-- Başlatma: PostgreSQL hazır → API migrasyon/demo seed → arayüz.
-- Durdurma: `docker compose down`. Veriler Docker volume içinde kalır.
+- API sağlık kontrolü: http://localhost:8080/health
+- PostgreSQL yalnızca Compose ağı üzerinden erişilir.
+- Durdurma: `docker compose down`. Veriler Docker volume içinde korunur.
 
-**3001 geçicidir:** yerelde 3000 dolu. Teslimden önce şartnamedeki 3000'e dönülecek.
-
-`.env` Git'e eklenmez. `DEMO_SEED=true`, eksik demo kullanıcıları otomatik oluşturur; mevcut parolaları değiştirmez. `DEMO_PASSWORD` varsayılanı `DemoDestek2026!`; yerel demo içindir. `SESSION_TTL=8h` oturum süresini belirler. `COOKIE_SECURE=false` yerel HTTP içindir; HTTPS ortamında true olmalı. Demo seed kapatılabilir (`DEMO_SEED=false`). Bu ayarlar internet ortamına üretim kurulumu yapıldığı anlamına gelmez.
+Arayüz geliştirme sırasında 3001 portunu kullanır; teslim için 3000 portuna dönülecektir.
 
 ## Demo hesapları
 
-Aşağıdaki hesapların ilk oluşturulurken kullanılan ortak yerel parolası: **`DemoDestek2026!`**. `DEMO_PASSWORD` değiştirilmişse ilk seed sırasında seçilen parola geçerlidir.
+Tüm demo hesaplarının başlangıç parolası: **`DemoDestek2026!`**
 
 | Rol | E-posta |
 |---|---|
@@ -37,73 +34,63 @@ Aşağıdaki hesapların ilk oluşturulurken kullanılan ortak yerel parolası: 
 | Varlık yöneticisi | varlik@destekmasa.local |
 | Yönetici | admin@destekmasa.local |
 
-## Mimari ve gerekçeler
+Demo kullanıcıları `DEMO_SEED=true` ile oluşturulur. `DEMO_PASSWORD` ilk oluşturma parolasını belirler; mevcut hesapların parolalarını değiştirmez. Diğer yerel ayarlar [.env.example](.env.example) dosyasındadır. Bu hesaplar yerel demo içindir.
+
+## Özellikler
+
+- **Talepler:** Talep oluşturma, kategori/öncelik, durum takibi ve rol/sahiplik kontrolü. Çalışanlar kendi taleplerini, destek ekibi ortak kuyruğu görür.
+- **Mesajlar:** Paylaşılan yanıtlar, yalnız destek ekibinin görebildiği iç notlar ve dosya ekleri.
+- **SLA:** Hafta içi 08.30–18.00 iş takvimi, tatiller, müşteri yanıtı beklerken duran çözüm süresi, %80 uyarısı ve ihlal/eskalasyon kayıtları. İlk yanıt, talebin işleme alınmasıyla tamamlanır.
+- **Otomatik atama:** Beceri, vardiya, izin ve kapasiteye göre uzman seçimi; uygun uzman yoksa kuyrukta bekleme ve sonradan yeniden atama.
+- **E-posta işleme:** Simülatörden yeni talep veya mevcut talebe yanıt, ek dosyalar ve aynı Message-ID için tekrar önleme. Yetkili kullanıcılar talepleri birleştirebilir veya mesajları yeni talebe bölebilir.
+- **Bilgi bankası:** Başlık/içerik araması ve kategori filtresi; uzman taslakları, lider/yönetici yayını ve arşivleme.
+- **Varlık envanteri:** Varlıklar arasındaki bağımlılık grafı ve döngülerde de sonlu çalışan etki analizi.
+- **Değişiklik planlama:** Bakım penceresi, risk ve geri dönüş planı; bağımsız lider/yönetici onayı; ortak varlıkları etkileyen çakışan planların engellenmesi ve karar geçmişi.
+
+## Mimari
 
 ```text
 Tarayıcı → React / Nginx → Go HTTP API → PostgreSQL 16
-              /api/... → /...       → kullanıcılar, oturumlar, denetim
 ```
 
-Go standart HTTP kütüphanesiyle başlıyoruz. pgx, SQL ve transaction'ları açıkça yönetmemizi sağlıyor. React + TypeScript ekran durumlarını ve veri tiplerini ifade ediyor; Vite derliyor. Nginx derlenmiş dosyaları sunuyor ve API'ye yönlendiriyor; tarayıcı aynı adrese istek yapıyor.
+React ve TypeScript arayüzü oluşturur; Vite derler. Nginx arayüzü sunar ve `/api` isteklerini Go API'ye yönlendirir. API, Go standart HTTP kütüphanesi ve pgx kullanır. Veritabanı migrasyonları başlangıçta uygulanır.
 
-Girişte bcrypt parola özeti doğrulanır. Kriptografik olarak rastgele 32 baytlık oturum anahtarı HttpOnly/SameSite=Strict çereze yazılır; veritabanında yalnızca SHA-256 özeti tutulur. Her korumalı istekte geçerlilik ve güncel kullanıcı rolü veritabanından okunur. Tekrar giriş eski tarayıcı oturumunu döndürür; çıkış oturumu siler. Başarılı giriş/çıkış ve denetim kaydı aynı transaction içinde tamamlanır. JSON giriş zorunluluğu, Origin kontrolü ve SameSite çerez politikası yabancı sitelerden yazma isteklerini sınırlar.
+Kimlik doğrulama bcrypt parola özeti ve HttpOnly oturum çereziyle yapılır. Yetkiler sunucuda kontrol edilir. Kritik işlemler ve denetim kayıtları aynı veritabanı transaction'ında tamamlanır.
 
-Kararlar: [DECISIONS.md](DECISIONS.md).
+Teknik kararlar: [DECISIONS.md](DECISIONS.md).
 
-## SLA motoru
+## Testler
 
-Talep detayında ilk yanıt ve çözüm sayaçları bulunur. İş takvimi hafta içi 08.30–18.00, Europe/Istanbul; hafta sonu ve tanımlı tam/yarım tatiller sayılmaz. İlk işleme alma kabul yanıtını tamamlar; kullanıcı yanıtı beklenirken çözüm sayacı durur. %80 uyarısı, ihlal ve takım liderine uygulama içi eskalasyon kayıtları kalıcı ve tekilleştirilmiştir. Yönetici takvim ve kategori/öncelik hedeflerini arayüzden düzenler.
+Önce uygulamayı başlatın. Make ve Python 3 ile aşağıdaki komutlar çalıştırılabilir; veritabanı testleri ayrı bir Docker ortamı kullanır.
 
-Takvim düzenlemesi tüm durum geçmişini aynı transaction'da yeniden hesaplar; hedef değişikliği yeni taleplere uygulanır. Detaylı kurallar, erişim, kanıt ve sınırlar: [docs/SLA.md](docs/SLA.md). 2026 tatilleri [Borsa İstanbul kaynağından](https://www.borsaistanbul.com/resmi-tatil-gunleri) doğrulandı; sonraki yıllar yönetici tarafından eklenmeli.
+| Komut | Kapsam |
+|---|---|
+| `make smoke` | Temel servis bağlantıları |
+| `make test` | Go testleri |
+| `make test-integration` | Gerçek PostgreSQL ile entegrasyon testleri |
+| `make verify` | Uygulama kontrolleri ve tamamlanmamış gereksinimler |
+| `make simulate-email` | Tekrarlanabilir e-posta örnekleri |
+| `make load` | SLA hesaplama ucunda kısa yük testi |
 
-## Otomatik atama
+`make verify`, eksik gereksinimler tamamlanana kadar başarısız sonuç verir. 25 Ekim doğrulamasında 118 PostgreSQL entegrasyon senaryosu, Go race/vet kontrolleri, arayüz derlemesi ve dört tarayıcı senaryosu (mobil kontroller dahil) başarılıdır. Yük testinin kapsamı ve ölçümleri: [docs/LOAD-RESULTS.md](docs/LOAD-RESULTS.md).
 
-Kategori becerilerinin tamamını karşılayan, vardiyası açık, izinli olmayan ve boş kapasitesi bulunan uzmanlar değerlendirilir. Puan %50 beceri/%30 boş kapasite/%20 round-robin sırasıdır. Aktif yük ve atama aynı kilitli transaction içinde korunur. Uygun uzman yoksa talep kuyrukta kalır. İzin, vardiya, beceri veya kapasite değişiminde işler devredilir; karar ve eski/yeni uzman geçmişte saklanır.
+API istek örnekleri: [requests.http](requests.http).
 
-Talep detayında atanan uzman; destek ekranında kişisel/atanmamış kuyruk filtresi ve atama geçmişi; lider/admin için kapasite/beceri/vardiya/izin panosu var. Demo uzman vardiyaları hafta sonu da açık; SLA bundan bağımsızdır. Kurallar, yarış kanıtı ve sınırlar: [docs/ASSIGNMENT.md](docs/ASSIGNMENT.md).
+## Kalan işler ve sınırlar
 
-## Mevcut durum ve sınırlar
+- Raporlar ve günlük 800 taleplik tam simülatör.
+- CI/lint, OpenAPI, indeks ölçümleri ve son teslim kontrolleri.
+- E-posta akışı simülatörle çalışır; gerçek SMTP/IMAP bağlantısı yoktur.
+- Bakım planlarının uygulanması uygulama dışında yapılır; uygulama planı, onayı ve sonucu kaydeder.
+- Takım bazlı destek kuyruğu, parola değiştirme, giriş hızı sınırlaması ve süresi dolmuş oturumların periyodik temizliği henüz yoktur.
+- SLA takvimindeki tatiller 2026 içindir; sonraki yıllar ayrıca eklenmelidir. Demo uzmanlarının vardiyaları hafta sonu da açıktır; SLA iş takvimi bundan bağımsızdır.
 
-Hazırlananlar: Compose/healthcheck, migrasyonlar, yedi demo hesap, bcrypt/DB oturumları, giriş/çıkış ve rol kontrolü. Talep açma, sahipliğe göre liste/detay, kategori/öncelik, durum filtresi ve destek ekibi için durum geçişleri API ve arayüzde çalışıyor. Oluşturma Idempotency-Key ile korunuyor; kritik değişiklikler audit kaydıyla aynı transaction'da yazılıyor. Uçlar `requests.http` içinde.
+## Teknik belgeler
 
-Talep erişimi: her rol kendi adına talep açabilir. Çalışan ve varlık yöneticisi yalnızca kendi taleplerini okur. Destek uzmanı, takım lideri ve yönetici ortak destek kuyruğunu görür ve durum değiştirir. Henüz takım/vardiya bazlı kuyruk ayrımı yok.
-
-Durum akışı: açık → işlemde → yanıt bekleniyor → işlemde → çözüldü → kapalı. Çözülen talep işlemde durumuna dönebilir; kapalı talep tekrar açılmaz. Paylaşılan mesajlar ve destek iç notları hazır. Talep silme ve açıklama düzenleme henüz yok.
-
-**Henüz yok:** bilgi bankası, raporlar, günlük 800 taleplik genel simülatör, CI/lint ve OpenAPI. Sınırlı e-posta simülatörü hazır. Rol kontrolünün altyapısı ve örnek uç hazır; gelecekteki her işlev kendi erişim kurallarını uygulamalı.
-
-Oturumlar sabit sürelidir; otomatik yenileme ve periyodik süresi dolmuş oturum temizliği henüz yok. Giriş hızı sınırlaması, parola değiştirme ve hesap yönetimi henüz yok. Audit trigger'ları normal UPDATE/DELETE/TRUNCATE işlemlerini reddeder; veritabanı yöneticisinin trigger'ları devre dışı bırakmasına karşı koruma iddiası yok.
-
-24 Ekim 2026 doğrulaması: Docker imajları derlendi, üç ana servis healthy. Go birim testleri `-race`, `go vet` ve TypeScript/Vite derlemesi başarılı. Gerçek PostgreSQL'de 11 kimlik + 24 talep/yorum + 11 SLA + 16 atama + 11 e-posta + 10 birleştirme/bölme + 10 varlık + 15 değişiklik = **108 entegrasyon senaryosu PASS**. Canlı API'de HEALTH/WEB/AUTH/RBAC/F-1/F-2/F-3/F-5/F-6/T-1/T-2/T-3/T-4/COMMENTS/EMAIL/THREADS kontrolleri başarılı. Chromium ile talep ve SLA kabul/bekleme/devam akışı, yönetici takvim/hedef kaydı, 390px mobil düzen, iç notların çalışandan gizlenmesi, paylaşılan yanıtlar, izinle otomatik devir, atama geçmişi, döngülü varlık grafı, bağımsız CAB, çakışma/eski graf reddi ve çıkış doğrulandı. Tam proje doğrulaması kalan F/T görevleri nedeniyle henüz geçmez.
-
-Kısa k6 ölçümü: 10 VU, 20 saniye; SLA preview ucunda 3.930 hesaplama isteği, HTTP hata %0, p95 0,62544 ms. Bu küçük yerel hesaplama senaryosudur; tüm uygulama veya takvim yeniden hesaplama kapasitesini göstermez. Kapsam ve sonuç: [docs/LOAD-RESULTS.md](docs/LOAD-RESULTS.md).
-
-`go.sum` ve `package-lock.json` oluşturuldu. Docker derlemesi kilit dosyalarını kullanır (`go mod download`, `npm ci`). Yerel doğrulama araçları sistem kurulumunu değiştirmeden `/tmp/destekmasa-tools` altında çalıştırıldı.
-
-## Doğrulama
-
-`make smoke` temel bağlantı, `make verify-auth` canlı giriş/yetki, `make verify-tickets` temel talep akışı, `make verify-sla` SLA API, `make prove-sla` kalıcı SLA kanıtı, `make load` kısa k6 ölçümü, `make verify-assignment` canlı atama API ve T-2 PostgreSQL kanıtı, `make prove-assignment` yalnız atama PostgreSQL grubu, `make test-integration` ayrı PostgreSQL ile testlerdir. `make verify` tamamlanmamış zorunlu özellikleri FAIL gösterir; bu aşamada teslim doğrulaması başarılı değildir.
-
-## Talep mesajları ve iç notlar
-
-Talep detayında “Mesajlar ve notlar” alanı var. Çalışan kendi talebine paylaşılan mesaj ekler; uzman/lider/admin ayrıca “İç not” seçebilir. İç notlar çalışanın API yanıtına dahi girmez. Metinler HTML olarak çalıştırılmaz; kapalı talebe yeni mesaj yazılmaz. Aynı gönderim anahtarıyla yeniden denemek çift kayıt oluşturmaz.
-
-`make verify-comments` çalışan sistemde görünürlük, sahiplik, tekrar/çakışma ve kapanış kurallarını doğrular. Mesajlar uygulamada kaydedilir; dışarıya e-posta gönderimi yoktur. Mesaj eklemek durumu veya SLA sayacını değiştirmez; ilk yanıt hâlâ açık “İşlemde” kabulüyle kaydedilir. Ayrıntılar: [docs/COMMENTS.md](docs/COMMENTS.md).
-
-## E-posta, birleştirme ve bölme (T-3)
-
-Lider/admin ekranındaki “E-posta simülatörü” kayıtlı kullanıcı adına yeni talep veya `#talepNo` konulu yanıt üretir; dosya ekleyebilirsin. Aynı Message-ID tekrar işlendiğinde çift kayıt açılmaz. `make simulate-email` aynı akışı ayrı Docker servisinden, aynı tohumla tekrar üretir. Gerçek SMTP/IMAP bağlantısı yoktur.
-
-Talep detayında lider/admin “Talebi birleştir veya böl” alanından aynı kişiye ait kayıtları birleştirir veya seçilen mesajları yeni talebe ayırır. İç notlar gizli kalır; ekler korunur. Bölmede yeni SLA başlar; birleştirmede hedefin süresi korunur. İşlem geçmişi detayda görünür.
-
-`make verify-t3` API ve gerçek PostgreSQL kanıtını çalıştırır. Teknik kurallar, sınırlar ve simülatör: [docs/EMAIL.md](docs/EMAIL.md). Genel doğrulamada artık T-3 PASS; kalan F-4 ve F-7 ile teslim hazırlıkları nedeniyle tüm proje henüz hazır değildir.
-
-## Varlık envanteri ve etki grafı
-
-Uzman/lider/varlık yöneticisi/admin “Varlıklar” sekmesinden envanteri ve aşağı yöndeki arıza etkisini görür. Varlık yöneticisi/admin kod, ad, tür, durum, sorumlu ve sağlayıcı → bağımlı bağlantılarını düzenler. Döngüler sonlu ve tekrarsız hesaplanır; graf ve örnek yollar gösterilir. `make verify-assets` API, `make prove-assets` gerçek PostgreSQL kanıtıdır. Kurallar ve sınırlar: [docs/ASSETS.md](docs/ASSETS.md).
-
-## Değişiklik ve CAB onayı (F-6 / T-4)
-
-“Değişiklikler” sekmesinden zaman penceresi, uygulama/geri dönüş planı, risk ve kök varlıklar seçilir. Gönderimde graf etkisi kaydedilir. Plan sahibinden farklı bir lider/admin CAB kararı verir. Ortak aşağı varlıkları etkileyen, zamanları örtüşen iki plan birlikte onaylanamaz. Graf değişirse yeniden değerlendirme gerekir. Onaylı iş yalnız plan penceresi içinde başlatılır; sonuç ve karar geçmişi kaydedilir.
-
-`make verify-changes` canlı API, `make verify-t4` API + PostgreSQL, `make prove-t4` izole PostgreSQL/graf kanıtıdır. Kurallar ve sınırlar: [docs/CHANGES.md](docs/CHANGES.md). F-5/F-6 ve dört zor görev artık uygulanmış durumdadır. Bilgi bankası, raporlar, günlük 800 taleplik genel simülatör, CI/lint, OpenAPI, indeks ölçümleri ve son teslim kontrolleri hâlâ kalır.
+- [Bilgi bankası](docs/KNOWLEDGE.md)
+- [SLA kuralları](docs/SLA.md)
+- [Otomatik atama](docs/ASSIGNMENT.md)
+- [Mesajlar ve iç notlar](docs/COMMENTS.md)
+- [E-posta, birleştirme ve bölme](docs/EMAIL.md)
+- [Varlık envanteri ve etki grafı](docs/ASSETS.md)
+- [Değişiklik planlama ve CAB onayı](docs/CHANGES.md)
