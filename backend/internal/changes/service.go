@@ -220,7 +220,7 @@ func (s *Service) Create(ctx context.Context, user auth.User, in Input, key stri
 	if err != nil {
 		return Change{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = assets.Lock(ctx, tx); err != nil {
 		return Change{}, err
 	}
@@ -274,7 +274,7 @@ func (s *Service) Update(ctx context.Context, user auth.User, id int64, in Input
 	if err != nil {
 		return Change{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = assets.Lock(ctx, tx); err != nil {
 		return Change{}, err
 	}
@@ -356,7 +356,7 @@ func (s *Service) Action(ctx context.Context, user auth.User, id int64, in Actio
 	if err != nil {
 		return Change{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = assets.Lock(ctx, tx); err != nil {
 		return Change{}, err
 	}
@@ -514,7 +514,7 @@ func (s *Service) Get(ctx context.Context, user auth.User, id int64) (Change, er
 	if err != nil {
 		return Change{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	c, err := scan(tx.QueryRow(ctx, selectChange+`WHERE c.id=$1`, id))
 	if err != nil {
 		return Change{}, err
@@ -540,7 +540,7 @@ func (s *Service) Preview(ctx context.Context, user auth.User, id int64) (Previe
 	if err != nil {
 		return Preview{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	c, err := scan(tx.QueryRow(ctx, selectChange+`WHERE c.id=$1`, id))
 	if err != nil {
 		return Preview{}, err

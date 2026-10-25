@@ -152,7 +152,7 @@ func (s *Service) Create(ctx context.Context, user auth.User, in Input, key stri
 	if err != nil {
 		return Article{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	_, err = tx.Exec(ctx, `INSERT INTO idempotency_keys(user_id,operation,key,request_hash) VALUES($1,'knowledge.create',$2,$3) ON CONFLICT DO NOTHING`, user.ID, key, hash[:])
 	if err != nil {
 		return Article{}, err
@@ -206,7 +206,7 @@ func (s *Service) Update(ctx context.Context, user auth.User, id int64, in Input
 	if err != nil {
 		return Article{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	old, err := scan(tx.QueryRow(ctx, selectArticle+`WHERE a.id=$1 FOR UPDATE OF a`, id))
 	if err != nil {
 		return Article{}, translate(err)

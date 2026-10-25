@@ -82,7 +82,7 @@ func (s *Service) AddComment(ctx context.Context, user auth.User, id int64, inpu
 	if err != nil {
 		return Comment{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	// Serializes comments against closing the same ticket, without taking routing
 	// locks: this transaction never changes assignment or status/SLA.
 	var owner int64

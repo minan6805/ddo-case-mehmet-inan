@@ -166,7 +166,7 @@ func (s *Service) Create(ctx context.Context, user auth.User, input CreateInput,
 	if err != nil {
 		return Ticket{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = assignment.Lock(ctx, tx); err != nil {
 		return Ticket{}, err
 	}
@@ -297,7 +297,7 @@ func (s *Service) UpdateStatus(ctx context.Context, user auth.User, id int64, ne
 	if err != nil {
 		return Ticket{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = assignment.Lock(ctx, tx); err != nil {
 		return Ticket{}, err
 	}

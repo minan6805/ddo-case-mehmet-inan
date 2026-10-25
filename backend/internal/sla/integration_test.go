@@ -31,7 +31,7 @@ func TestPostgresSLAEngine(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer tx.Rollback(context.Background())
+		defer func() { _ = tx.Rollback(context.Background()) }()
 		if err = LockShared(ctx, tx); err != nil {
 			t.Fatal(err)
 		}
@@ -55,7 +55,7 @@ func TestPostgresSLAEngine(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer tx.Rollback(context.Background())
+		defer func() { _ = tx.Rollback(context.Background()) }()
 		if err = LockShared(ctx, tx); err != nil {
 			t.Fatal(err)
 		}

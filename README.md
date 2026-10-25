@@ -68,6 +68,7 @@ Teknik kararlar: [DECISIONS.md](DECISIONS.md).
 | Komut | Kapsam |
 |---|---|
 | `make smoke` | Temel servis bağlantıları |
+| `make lint` | Go biçimi ve golangci-lint |
 | `make test` | Go testleri |
 | `make test-integration` | Gerçek PostgreSQL ile entegrasyon testleri |
 | `make verify` | Uygulama kontrolleri ve tamamlanmamış gereksinimler |
@@ -77,11 +78,13 @@ Teknik kararlar: [DECISIONS.md](DECISIONS.md).
 
 `make verify`, F-1–F-7 özelliklerini, T-1–T-4 çekirdek görevlerini ve simülatörü denetler; herhangi bir kontrol başarısızsa sıfırdan farklı çıkış kodu döndürür. 25 Ekim doğrulamasında 141 PostgreSQL entegrasyon senaryosu, Go race/vet kontrolleri, arayüz derlemesi ve simülatör dahil altı tarayıcı senaryosu (mobil kontroller dahil) başarılıdır. Yük testinin kapsamı ve ölçümleri: [docs/LOAD-RESULTS.md](docs/LOAD-RESULTS.md).
 
+GitHub Actions, her gönderimde Go build/lint/test, arayüz derlemesi ve Docker üzerinden genel doğrulamayı çalıştırır. Ayrıntılar: [docs/CI.md](docs/CI.md).
+
 API istek örnekleri: [requests.http](requests.http).
 
 ## Kalan işler ve sınırlar
 
-- CI/lint, OpenAPI, indeks ölçümleri ve son teslim kontrolleri.
+- OpenAPI, indeks ölçümleri ve son teslim kontrolleri.
 - E-posta akışı simülatörle çalışır; gerçek SMTP/IMAP bağlantısı yoktur.
 - Bakım planlarının uygulanması uygulama dışında yapılır; uygulama planı, onayı ve sonucu kaydeder.
 - Takım bazlı destek kuyruğu, parola değiştirme, giriş hızı sınırlaması ve süresi dolmuş oturumların periyodik temizliği henüz yoktur.

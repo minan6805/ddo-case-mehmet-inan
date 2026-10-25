@@ -303,7 +303,11 @@ func TestPostgresThreadWorkflow(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer pool.Exec(ctx, `DROP TRIGGER test_thread_audit ON audit_log; DROP FUNCTION fail_thread_audit()`)
+		defer func() {
+			if _, err := pool.Exec(ctx, `DROP TRIGGER test_thread_audit ON audit_log; DROP FUNCTION fail_thread_audit()`); err != nil {
+				t.Error(err)
+			}
+		}()
 		if _, err := service.Merge(ctx, manager, a.ID, b.ID, "rollback-merge"); err == nil {
 			t.Fatal("failure ignored")
 		}

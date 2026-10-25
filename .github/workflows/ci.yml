@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Go build, lint and PostgreSQL tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: destekmasa_test
+          POSTGRES_USER: test_runner
+          POSTGRES_PASSWORD: isolated-test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test_runner -d destekmasa_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      GOTOOLCHAIN: local
+      INTEGRATION_DATABASE_URL: postgres://test_runner:isolated-test-only@127.0.0.1:5432/destekmasa_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Check Go formatting
+        run: |
+          unformatted_files="$(gofmt -l .)"
+          if [ -n "$unformatted_files" ]; then
+            printf '%s\n' "$unformatted_files"
+            exit 1
+          fi
+      - name: Verify dependencies and build both commands
+        run: |
+          go mod verify
+          go build ./...
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v8
+        with:
+          version: v2.1.6
+          working-directory: backend
+      - name: Race and real PostgreSQL tests
+        run: go test -race -count=1 -timeout=4m -v ./...
+
+  frontend:
+    name: TypeScript and frontend build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+
+  compose:
+    name: Docker and end-to-end verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Configure local demo and start services
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+          docker compose up --build -d --wait
+      - name: Verify all features, core tasks and simulator
+        run: make verify
+      - name: Service diagnostics
+        if: failure()
+        run: docker compose logs --no-color --tail=80 api frontend
+      - name: Clean up isolated CI services
+        if: always()
+        run: |
+          docker compose down --volumes --remove-orphans
+          docker compose -f compose.test.yaml down --volumes --remove-orphans

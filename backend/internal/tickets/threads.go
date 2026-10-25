@@ -119,7 +119,7 @@ func (s *Service) Merge(ctx context.Context, user auth.User, source, target int6
 	if err != nil {
 		return ThreadResult{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = assignment.Lock(ctx, tx); err != nil {
 		return ThreadResult{}, err
 	}
@@ -205,7 +205,7 @@ func (s *Service) Split(ctx context.Context, user auth.User, source int64, input
 	if err != nil {
 		return ThreadResult{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = assignment.Lock(ctx, tx); err != nil {
 		return ThreadResult{}, err
 	}

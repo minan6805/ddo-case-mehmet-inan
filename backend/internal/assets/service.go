@@ -176,7 +176,7 @@ func (s *Service) Detail(ctx context.Context, user auth.User, id int64) (Detail,
 	if err != nil {
 		return Detail{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	a, err := scan(tx.QueryRow(ctx, selectAsset+`WHERE a.id=$1`, id))
 	if err != nil {
 		return Detail{}, translate(err)
@@ -233,7 +233,7 @@ func (s *Service) Create(ctx context.Context, user auth.User, in Input, key stri
 	if err != nil {
 		return Asset{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = Lock(ctx, tx); err != nil {
 		return Asset{}, err
 	}
@@ -293,7 +293,7 @@ func (s *Service) Update(ctx context.Context, user auth.User, id int64, in Input
 	if err != nil {
 		return Asset{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = Lock(ctx, tx); err != nil {
 		return Asset{}, err
 	}
@@ -331,7 +331,7 @@ func (s *Service) Dependency(ctx context.Context, user auth.User, provider, depe
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = Lock(ctx, tx); err != nil {
 		return err
 	}
@@ -377,7 +377,7 @@ func (s *Service) Impact(ctx context.Context, user auth.User, roots []int64) (Im
 	if err != nil {
 		return Impact{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	result, err := SnapshotTx(ctx, tx, roots)
 	if err != nil {
 		return Impact{}, err

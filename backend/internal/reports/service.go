@@ -137,7 +137,7 @@ func (s *Service) Overview(ctx context.Context, user auth.User, f Filter) (Repor
 	if err != nil {
 		return Report{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	result := Report{Range: selected, Statuses: []Bucket{}, Priorities: []Bucket{}, Categories: []Bucket{}, Daily: []Day{}, Workload: Workload{Experts: []Expert{}}}
 	if err = tx.QueryRow(ctx, `SELECT transaction_timestamp()`).Scan(&result.SnapshotAt); err != nil {
 		return Report{}, err

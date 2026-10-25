@@ -69,7 +69,7 @@ func (s *Service) Settings(ctx context.Context) (Settings, error) {
 	if err != nil {
 		return Settings{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = LockShared(ctx, tx); err != nil {
 		return Settings{}, err
 	}
@@ -214,7 +214,7 @@ func (s *Service) Ticket(ctx context.Context, userID int64, staff bool, id int64
 	if err != nil {
 		return Snapshot{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = LockShared(ctx, tx); err != nil {
 		return Snapshot{}, err
 	}
@@ -249,7 +249,7 @@ func (s *Service) Sweep(ctx context.Context, limit int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = LockShared(ctx, tx); err != nil {
 		return 0, err
 	}
@@ -293,7 +293,7 @@ func (s *Service) UpdateCalendar(ctx context.Context, actorID int64, input Calen
 	if err != nil {
 		return Calendar{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(7420182)`); err != nil {
 		return Calendar{}, err
 	}
@@ -361,7 +361,7 @@ func (s *Service) UpdatePolicy(ctx context.Context, actorID int64, input Policy)
 	if err != nil {
 		return Policy{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	// Serialize settings writes with calendar edits and ticket policy snapshots.
 	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(7420182)`); err != nil {
 		return Policy{}, err

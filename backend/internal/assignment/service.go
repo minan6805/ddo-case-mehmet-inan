@@ -230,7 +230,7 @@ func (s *Service) Board(ctx context.Context) (Board, error) {
 	if err != nil {
 		return Board{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	experts, err := loadExperts(ctx, tx, 0, false, s.now())
 	if err != nil {
 		return Board{}, err
@@ -267,7 +267,7 @@ func (s *Service) UpdateExpert(ctx context.Context, id, actor int64, input Profi
 	if err != nil {
 		return Board{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = Lock(ctx, tx); err != nil {
 		return Board{}, err
 	}
@@ -364,7 +364,7 @@ func (s *Service) Retry(ctx context.Context, id, actor int64) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = Lock(ctx, tx); err != nil {
 		return err
 	}
@@ -381,7 +381,7 @@ func (s *Service) Sweep(ctx context.Context, limit int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	if err = Lock(ctx, tx); err != nil {
 		return 0, err
 	}

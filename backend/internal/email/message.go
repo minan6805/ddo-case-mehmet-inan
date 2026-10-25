@@ -166,9 +166,12 @@ func readPart(h textproto.MIMEHeader, r io.Reader, depth int, parts, total *int,
 				return "", ErrInvalid
 			}
 			text, err := readPart(p.Header, p, depth+1, parts, total, attachments)
-			p.Close()
+			closeErr := p.Close()
 			if err != nil {
 				return "", err
+			}
+			if closeErr != nil {
+				return "", ErrInvalid
 			}
 			if text != "" {
 				texts = append(texts, text)

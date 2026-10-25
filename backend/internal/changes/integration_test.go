@@ -276,7 +276,7 @@ func TestPostgresChangeWorkflow(t *testing.T) {
 		if _, err := service.Action(ctx, owner, second.ID, changes.ActionInput{Action: "submit", Note: "Ayrı kök yeni graf", Version: second.Version}, "stale-reservation"); !errors.Is(err, changes.ErrOverlap) {
 			t.Fatal(err)
 		}
-		first = act(t, owner, first, "cancel")
+		act(t, owner, first, "cancel")
 		second = act(t, owner, second, "submit")
 		second = act(t, cab, second, "approve")
 	})

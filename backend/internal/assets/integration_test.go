@@ -243,7 +243,11 @@ func TestPostgresAssetGraph(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer pool.Exec(ctx, `DROP TRIGGER fail_asset_audit ON audit_log; DROP FUNCTION fail_asset_audit()`)
+		defer func() {
+			if _, err := pool.Exec(ctx, `DROP TRIGGER fail_asset_audit ON audit_log; DROP FUNCTION fail_asset_audit()`); err != nil {
+				t.Error(err)
+			}
+		}()
 		var before, after int64
 		if err = pool.QueryRow(ctx, `SELECT version FROM asset_graph_revision`).Scan(&before); err != nil {
 			t.Fatal(err)

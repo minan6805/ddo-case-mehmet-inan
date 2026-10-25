@@ -54,7 +54,8 @@ func healthcheck() error {
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	// Only the status determines health; closing releases the connection.
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		return fmt.Errorf("unhealthy")
 	}

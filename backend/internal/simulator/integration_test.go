@@ -180,7 +180,11 @@ func TestPostgresSimulator(t *testing.T) {
 		if _, err = conn.Exec(ctx, `SELECT pg_advisory_lock($1)`, runnerLock); err != nil {
 			t.Fatal(err)
 		}
-		defer conn.Exec(context.Background(), `SELECT pg_advisory_unlock($1)`, runnerLock)
+		defer func() {
+			if _, err := conn.Exec(context.Background(), `SELECT pg_advisory_unlock($1)`, runnerLock); err != nil {
+				t.Error(err)
+			}
+		}()
 		before := count(`SELECT count(*) FROM simulation_runs`)
 		if _, err = NewRunner(pool).Run(ctx, testConfig("concurrent", 4)); !errors.Is(err, ErrRunning) {
 			t.Fatal(err)
@@ -252,7 +256,11 @@ func TestPostgresSimulator(t *testing.T) {
 		if _, err := pool.Exec(ctx, `UPDATE users SET role_code='employee' WHERE id=$1`, admin.ID); err != nil {
 			t.Fatal(err)
 		}
-		defer pool.Exec(context.Background(), `UPDATE users SET role_code='admin' WHERE id=$1`, admin.ID)
+		defer func() {
+			if _, err := pool.Exec(context.Background(), `UPDATE users SET role_code='admin' WHERE id=$1`, admin.ID); err != nil {
+				t.Error(err)
+			}
+		}()
 		failed, err := NewRunner(pool).Run(ctx, testConfig("startup-retry", 4))
 		if err == nil || failed.Status != "failed" || failed.LastError != "WORKLOAD_FAILED" {
 			t.Fatalf("%+v %v", failed, err)

@@ -83,7 +83,7 @@ func (s *Service) Login(ctx context.Context, email, password, oldToken string) (
 	if err != nil {
 		return Session{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	// Rotate the browser's old session on successful login.
 	if previous, ok := tokenDigest(oldToken); ok {
 		if _, err = tx.Exec(ctx, `DELETE FROM sessions WHERE token_hash=$1`, previous); err != nil {
@@ -128,7 +128,7 @@ func (s *Service) Logout(ctx context.Context, token string) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	var userID int64
 	err = tx.QueryRow(ctx, `DELETE FROM sessions WHERE token_hash=$1 RETURNING user_id`, digest).Scan(&userID)
 	if errors.Is(err, pgx.ErrNoRows) {

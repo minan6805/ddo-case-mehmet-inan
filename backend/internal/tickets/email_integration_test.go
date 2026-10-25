@@ -239,7 +239,11 @@ func TestPostgresEmailWorkflow(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer pool.Exec(ctx, `DROP TRIGGER test_attachment_failure ON comment_attachments; DROP FUNCTION fail_email_attachment()`)
+		defer func() {
+			if _, err := pool.Exec(ctx, `DROP TRIGGER test_attachment_failure ON comment_attachments; DROP FUNCTION fail_email_attachment()`); err != nil {
+				t.Error(err)
+			}
+		}()
 		var before, after int
 		if err = pool.QueryRow(ctx, `SELECT count(*) FROM tickets`).Scan(&before); err != nil {
 			t.Fatal(err)

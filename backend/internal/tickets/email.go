@@ -46,7 +46,7 @@ func (s *Service) IngestEmail(ctx context.Context, actor auth.User, raw []byte) 
 	if err != nil {
 		return EmailReceipt{}, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 	// Same lock order as web creates/status changes; no nested service transactions.
 	if err = assignment.Lock(ctx, tx); err != nil {
 		return EmailReceipt{}, err
