@@ -8,7 +8,7 @@
 | Arayüz | Kilit dosyasıyla `npm ci`, TypeScript kontrolü ve Vite derlemesi |
 | Compose | Örnek ayarlarla servislerin başlatılması ve F/T kimlikleri ile simülatörü içeren `make verify` |
 
-Her iş kendi GitHub runner ortamını kullanır. Test veritabanları ve demo servisleri bu ortamlarda oluşturulur; Compose işi çıkışta kendi volume'lerini temizler. Örnek ayarlar `.env.example` üzerinden alınır. Workflow depo içeriğini okuma izniyle çalışır; kullanılan action'lar commit SHA'sına sabitlenmiştir.
+Her iş kendi GitHub runner ortamını kullanır. Test veritabanları ve demo servisleri bu ortamlarda oluşturulur; Compose işi çıkışta kendi volume'lerini temizler. Örnek ayarlar `.env.example` üzerinden alınır. Workflow depo içeriğini okuma izniyle çalışır; kullanılan action'lar commit SHA'sına sabitlenmiştir. Action çalışma ortamı Node.js 24'tür; arayüzün derleme ortamı Node.js 22 olarak tanımlıdır.
 
 ## Lint
 
