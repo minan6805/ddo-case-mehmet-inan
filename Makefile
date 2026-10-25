@@ -1,4 +1,4 @@
-.PHONY: verify-reports prove-reports verify-knowledge prove-knowledge up down logs smoke verify test test-integration verify-auth verify-tickets verify-sla prove-sla verify-assignment prove-assignment verify-comments verify-email verify-t3 prove-t3 simulate-email prove-email load reset-demo verify-assets prove-assets verify-changes verify-t4 prove-t4
+.PHONY: simulate verify-simulator prove-simulator verify-reports prove-reports verify-knowledge prove-knowledge up down logs smoke verify test test-integration verify-auth verify-tickets verify-sla prove-sla verify-assignment prove-assignment verify-comments verify-email verify-t3 prove-t3 simulate-email prove-email load reset-demo verify-assets prove-assets verify-changes verify-t4 prove-t4
 
 up:
 	docker compose up --build -d --wait
@@ -93,3 +93,12 @@ verify-reports:
 
 prove-reports:
 	TEST_PACKAGE=./internal/reports TEST_RUN=TestPostgresReports sh scripts/test-integration.sh
+
+simulate:
+	docker compose --profile tools run --build --rm simulator
+
+verify-simulator:
+	python3 scripts/verify.py --simulator
+
+prove-simulator:
+	TEST_PACKAGE=./internal/simulator TEST_RUN=TestPostgresSimulator sh scripts/test-integration.sh

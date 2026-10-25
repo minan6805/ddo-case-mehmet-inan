@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Deterministic, bounded email fixture. It uses only the trusted demo importer.
-This is not the full 800/day workload generator required by project section 8.
+For the complete daily workload generator, use make simulate.
 """
 import email.policy
 from email.message import EmailMessage

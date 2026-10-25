@@ -40,6 +40,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--full', action='store_true')
 parser.add_argument('--knowledge', action='store_true')
 parser.add_argument('--reports', action='store_true')
+parser.add_argument('--simulator', action='store_true')
 parser.add_argument('--auth', action='store_true')
 parser.add_argument('--tickets', action='store_true')
 parser.add_argument('--sla', action='store_true')
@@ -760,6 +761,63 @@ def verify_changes():
                 pass
 
 
+def verify_simulator():
+    worker_log = Path('/tmp/ddo-simulator-worker-proof.log')
+    command = ['docker', 'compose', '--profile', 'tools', 'run', '--build', '--rm',
+               '-e', 'SIMULATOR_RUN=verify-workload-v1', '-e', 'SIMULATOR_SEED=42',
+               '-e', 'SIMULATOR_DAY=2026-10-26', '-e', 'SIMULATOR_COUNT=8',
+               '-e', 'SIMULATOR_DAY_SECONDS=0', 'simulator']
+    with worker_log.open('w') as output:
+        result = subprocess.run(command, stdout=output, stderr=subprocess.STDOUT, timeout=180)
+    if result.returncode != 0:
+        raise AssertionError(f'Simülatör servisi başarısız: {worker_log}')
+    records = []
+    for line in worker_log.read_text().splitlines():
+        if line.startswith('{'):
+            try:
+                records.append(json.loads(line))
+            except json.JSONDecodeError:
+                pass
+    run = next((r for r in reversed(records) if r.get('config', {}).get('name') == 'verify-workload-v1'), None)
+    if not run or run['status'] != 'completed' or run['generated_tickets'] != 8 or run['completed_steps'] != run['total_steps']:
+        raise AssertionError(f'Simülatör tamamlanma kaydı eksik: {worker_log}')
+    participants = []
+    try:
+        for name in ['lider', 'calisan', 'uzman', 'varlik']:
+            opener, _ = client()
+            expect(call(opener, '/auth/login', 'POST', {'email': name + '@destekmasa.local', 'password': password})[0], 200, 'Simülasyon durumu girişi')
+            participants.append(opener)
+        leader, employee, specialist, asset_manager = participants
+        anonymous, _ = client()
+        expect(call(anonymous, '/simulations')[0], 401, 'Anonim simülasyon erişimi')
+        for opener in [employee, specialist, asset_manager]:
+            for path in ['/simulations', f"/simulations/{run['id']}"]:
+                expect(call(opener, path)[0], 403, 'Simülasyon rol kontrolü')
+        status, detail = call(leader, f"/simulations/{run['id']}")
+        expect(status, 200, 'Simülasyon sonucu')
+        if detail['run']['generated_tickets'] != 8 or 'checkpoint' in detail['run']:
+            raise AssertionError('Simülasyon sayaçları veya gizli checkpoint sınırı hatalı')
+        status, page = call(leader, '/simulations?limit=1')
+        expect(status, 200, 'Simülasyon sayfalama')
+        if len(page['items']) != 1:
+            raise AssertionError('Sayfa sınırı uygulanmadı')
+    finally:
+        for opener in participants:
+            call(opener, '/auth/logout', 'POST')
+    proof = Path('/tmp/destekmasa-assignment-proof.log') if args.full else Path('/tmp/ddo-simulator-proof.log')
+    if not args.full:
+        with proof.open('w') as output:
+            result = subprocess.run(['make', 'prove-simulator'], stdout=output, stderr=subprocess.STDOUT, timeout=300)
+        if result.returncode != 0:
+            raise AssertionError(f'Simülatör PostgreSQL kanıtı başarısız: {proof}')
+    text = proof.read_text()
+    for scenario in ['full_800_ticket_day_and_related_data', 'completed_replay_is_a_database_noop',
+                     'unacknowledged_ticket_resumes_without_duplicates', 'failed_shift_restores_and_can_resume',
+                     'manual_profile_change_is_not_overwritten', 'concurrent_runner_is_rejected_before_any_writes']:
+        if f'--- PASS: TestPostgresSimulator/{scenario}' not in text:
+            raise AssertionError(f'Simülatör kanıtı eksik: {scenario}; {proof}')
+
+
 def verify_reports():
     participants = []
     ticket_id = None
@@ -933,4 +991,6 @@ if args.t4 or args.full:
     check('T-4', verify_t4_proof)
 if args.reports or args.full:
     check('F-7', verify_reports)
+if args.simulator or args.full:
+    check('SIMULATOR', verify_simulator)
 sys.exit(1 if failed else 0)

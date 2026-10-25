@@ -7,6 +7,7 @@ import { Assets } from './Assets';
 import { Changes } from './Changes';
 import { Knowledge } from './Knowledge';
 import { Reports } from './Reports';
+import { Simulation } from './Simulation';
 
 type Status = 'loading' | 'ready' | 'error';
 const roleLabels: Record<string, string> = {
@@ -112,7 +113,7 @@ function Account({ user, onLogout }: { user: User; onLogout: () => void }) {
 }
 
 function App() {
-  const [view, setView] = useState<'tickets' | 'assets' | 'changes' | 'knowledge' | 'reports'>('tickets');
+  const [view, setView] = useState<'tickets' | 'assets' | 'changes' | 'knowledge' | 'reports' | 'simulation'>('tickets');
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Status>('loading');
   const [attempt, setAttempt] = useState(0);
@@ -138,7 +139,7 @@ function App() {
         <p className="intro">Kurumunuzun destek süreçleri için tek bir başlangıç noktası.</p>
         {session === 'loading' && <section className="status-card"><p role="status">Oturum kontrol ediliyor…</p></section>}
         {session === 'error' && <section className="status-card"><p role="alert">Oturum bilgisi alınamadı. Lütfen tekrar deneyin.</p><button onClick={() => setAttempt((value) => value + 1)}>Tekrar dene</button></section>}
-        {session === 'ready' && (user ? <><Account user={user} onLogout={expireSession} /><nav className="module-nav" aria-label="Modüller"><button className={view === 'tickets' ? '' : 'secondary'} onClick={() => setView('tickets')}>Talepler</button><button className={view === 'knowledge' ? '' : 'secondary'} onClick={() => setView('knowledge')}>Bilgi bankası</button>{['specialist', 'team_lead', 'asset_manager', 'admin'].includes(user.role) && <><button className={view === 'assets' ? '' : 'secondary'} onClick={() => setView('assets')}>Varlıklar</button><button className={view === 'changes' ? '' : 'secondary'} onClick={() => setView('changes')}>Değişiklikler</button></>}{['team_lead', 'admin'].includes(user.role) && <button className={view === 'reports' ? '' : 'secondary'} onClick={() => setView('reports')}>Raporlar</button>}</nav>{view === 'reports' ? <Reports key={user.id} onExpired={expireSession} /> : view === 'knowledge' ? <Knowledge key={user.id} user={user} onExpired={expireSession} /> : view === 'changes' ? <Changes key={user.id} user={user} onExpired={expireSession} /> : view === 'assets' ? <Assets key={user.id} user={user} onExpired={expireSession} /> : <Tickets key={user.id} user={user} onExpired={expireSession} />}</> : <Login onLogin={setUser} />)}
+        {session === 'ready' && (user ? <><Account user={user} onLogout={expireSession} /><nav className="module-nav" aria-label="Modüller"><button className={view === 'tickets' ? '' : 'secondary'} onClick={() => setView('tickets')}>Talepler</button><button className={view === 'knowledge' ? '' : 'secondary'} onClick={() => setView('knowledge')}>Bilgi bankası</button>{['specialist', 'team_lead', 'asset_manager', 'admin'].includes(user.role) && <><button className={view === 'assets' ? '' : 'secondary'} onClick={() => setView('assets')}>Varlıklar</button><button className={view === 'changes' ? '' : 'secondary'} onClick={() => setView('changes')}>Değişiklikler</button></>}{['team_lead', 'admin'].includes(user.role) && <button className={view === 'reports' ? '' : 'secondary'} onClick={() => setView('reports')}>Raporlar</button>}{['team_lead', 'admin'].includes(user.role) && <button className={view === 'simulation' ? '' : 'secondary'} onClick={() => setView('simulation')}>Simülasyon</button>}</nav>{view === 'simulation' ? <Simulation key={user.id} onExpired={expireSession} /> : view === 'reports' ? <Reports key={user.id} onExpired={expireSession} /> : view === 'knowledge' ? <Knowledge key={user.id} user={user} onExpired={expireSession} /> : view === 'changes' ? <Changes key={user.id} user={user} onExpired={expireSession} /> : view === 'assets' ? <Assets key={user.id} user={user} onExpired={expireSession} /> : <Tickets key={user.id} user={user} onExpired={expireSession} />}</> : <Login onLogin={setUser} />)}
         <ConnectionStatus />
       </main>
       <footer>DestekMasa <span>Mehmet İnan · DDO projesi</span></footer>

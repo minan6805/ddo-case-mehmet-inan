@@ -118,7 +118,7 @@ Talep edenin yanıtına iç notları hiç dahil etmiyoruz; görünürlük filtre
 
 ## ADR-014 — Güvenilir e-posta simülatörü, atomik Message-ID ve sınırlı MIME
 
-Gerçek posta altyapısı yerine lider/admin oturumu gerektiren message/rfc822 ithalatı ve ayrı, deterministik Docker e-posta vericisi seçildi. Normal çalışan From alanıyla kullanıcı taklidi yapamaz. Gönderen DB'de bulunur, yanıtın talep erişimi kontrol edilir. Message-ID + ham SHA-256, tek transaction'da talep/yorum/ek/atama/SLA/audit ile kaydedilir. Aynı kimlik/ham baytlar tekrar, farklı baytlar 409'dur. UTF-8 düz metin ve yaygın MIME ekleri desteklenir; HTML-only/diğer karakter setleri reddedilir. Ekler küçük boyut sınırlarıyla DB'de tutulur, görünürlük kontrollü zorunlu indirme olarak sunulur. Dışarıya e-posta teslimi ve genel günlük 800 olay simülatörü kapsamı henüz tamamlanmadı.
+Gerçek posta altyapısı yerine lider/admin oturumu gerektiren message/rfc822 ithalatı ve ayrı, deterministik Docker e-posta vericisi seçildi. Normal çalışan From alanıyla kullanıcı taklidi yapamaz. Gönderen DB'de bulunur, yanıtın talep erişimi kontrol edilir. Message-ID + ham SHA-256, tek transaction'da talep/yorum/ek/atama/SLA/audit ile kaydedilir. Aynı kimlik/ham baytlar tekrar, farklı baytlar 409'dur. UTF-8 düz metin ve yaygın MIME ekleri desteklenir; HTML-only/diğer karakter setleri reddedilir. Ekler küçük boyut sınırlarıyla DB'de tutulur, görünürlük kontrollü zorunlu indirme olarak sunulur. Dışarıya e-posta teslimi uygulanmadı. Genel günlük iş yükü üreticisi ADR-018 kapsamında eklendi.
 
 ## ADR-015 — Değişmez yorum ve ayrı güncel konumla birleştirme/bölme
 
@@ -131,3 +131,7 @@ Destek uzmanı kendi taslağını hazırlar; lider/yönetici yayını yönetir. 
 ## ADR-017 — Raporlarda tek veri anı ve açık ölçüm kapsamı
 
 Yönetim raporu yalnız lider/admin erişimine açıktır. Oluşturulma tarihine göre İstanbul günleriyle seçilen talep grubunun güncel durumları raporlanır; dönem içinde kapanan bütün işleri ölçtüğü iddia edilmez. Global kapasiteyi doğru göstermek için güncel uzman iş yükü bu filtreden ayrı tutulur. Bütün sorgular salt okunur REPEATABLE READ transaction'ında aynı veri anını kullanır. SLA ortalamaları yalnız tamamlanan sayaç örneklerinden, geçmiş olay sayıları tekil taleplerden hesaplanır; kontrol zamanları ve örnek sayıları görünürdür. Böylece aynı talebin birden fazla olayı toplamları şişirmez; rapor okumak üretim sayaçlarını değiştirmez.
+
+## ADR-018 — Tekrarlanabilir plan, kalıcı checkpoint ve ayrı Go üreticisi
+
+Genel simülatör ayrı Compose servisi olarak aynı Go domain servislerini kullanır; HTTP oturumu taklidi veya doğrudan talep/SLA satırı üretimi yapmaz. SHA-256 tabanlı seçim ve plan özeti, aynı ayarlarda sabit akış sağlar. Checkpoint öncesi kesinti; mevcut idempotency anahtarları, Message-ID ve hedef durum kontrolüyle toparlanır. Ayrı PostgreSQL oturum kilidi üreticileri tekilleştirir; domain kilitleri normal yazma güvenliğini korur. Demo vardiyaları saklanır, bilinen değişiklikler çıkışta geri alınır; dış profil değişiklikleri ezilmez. Gerçek sistem saati korunur; hızlandırılmış mantıksal günün geçmiş tarihli SLA kanıtı olduğu iddia edilmez. Lider/admin durum ekranı checkpoint içeriğini açmadan ilerlemeyi gösterir.

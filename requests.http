@@ -307,3 +307,9 @@ GET {{baseUrl}}/reports?from=2026-10-01&to=2026-10-25&category=network
 
 ### Geçersiz tarih aralığı — 400
 GET {{baseUrl}}/reports?from=2026-10-25&to=2026-10-01
+
+### Lider/admin: simülatör çalışma listesi (başlatma ayrı Compose servisiyle)
+GET {{baseUrl}}/simulations?limit=10
+
+### Çalışma sonucu: numarayı liste yanıtına göre değiştirin
+GET {{baseUrl}}/simulations/1

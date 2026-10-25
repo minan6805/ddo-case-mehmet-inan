@@ -56,6 +56,28 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+  simulator:
+    build:
+      context: ./backend
+      target: simulator
+    profiles: [tools]
+    init: true
+    stop_grace_period: 40s
+    environment:
+      PGHOST: db
+      PGPORT: '5432'
+      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGSSLMODE: disable
+      SIMULATOR_SEED: ${SIMULATOR_SEED:-42}
+      SIMULATOR_RUN: ${SIMULATOR_RUN:-demo-v1}
+      SIMULATOR_DAY: ${SIMULATOR_DAY:-2026-10-26}
+      SIMULATOR_COUNT: ${SIMULATOR_COUNT:-800}
+      SIMULATOR_DAY_SECONDS: ${SIMULATOR_DAY_SECONDS:-120}
+    depends_on:
+      api:
+        condition: service_healthy
   email-simulator:
     image: python:3.13-alpine
     user: '65532:65532'

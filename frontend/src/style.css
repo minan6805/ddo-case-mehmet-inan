@@ -195,3 +195,10 @@ progress { width: 100%; height: 8px; accent-color: #21644f; }
 .report-table-wrap caption { padding: 12px; text-align: left; font-weight: 600; background: #f5f8f6; }
 .report-daily { max-height: 360px; overflow-y: auto; }
 @media (max-width: 480px) { .report-metrics > div { flex-direction: column; gap: 6px; } .report-metrics dd { text-align: left; } .report-table-wrap th, .report-table-wrap td { padding: 8px; } }
+
+.simulation-module .section-heading { flex-wrap: wrap; }
+.simulation-run { margin: 24px 0; padding: 20px 0; border-top: 1px solid #dce4ec; overflow-wrap: anywhere; }
+.simulation-run h3 { margin: 0; }
+.simulation-run progress { display: block; width: 100%; height: 16px; margin-top: 12px; accent-color: #21644f; }
+.simulation-run .badge { white-space: normal; }
+.simulation-metrics dd { font-size: 22px; }

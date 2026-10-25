@@ -24,7 +24,7 @@ Geçerli bir atama sırf başka adayın puanı arttı diye taşınmaz; her turda
 
 Yazma işlemi sırası: takvim paylaşımlı kilidi → atama transaction kilidi → talep/uzman satır kilitleri. Bu küçük sistemde atama kararları PostgreSQL advisory transaction lock ile sıraya alınır; aday profil satırları da kilitlenir. Yük, kapalı olmayan iş kayıtlarından sorgulanır; ayrıca seçilen uzmanın yükü yazımdan hemen önce yeniden kontrol edilir. Böylece bir önceki atama commit olmadan ikinci karar boş yeri tekrar kullanamaz.
 
-Oluşturma, durum değiştirme, izin/vardiya/beceri/kapasite değişimi ve arka plan kontrolü aynı kilit protokolünü kullanır. Taleple atama, geçmiş ve audit aynı transaction içinde commit edilir. Doğrudan SQL ile bu protokolü atlayan bir yazıcının kapasiteyi koruduğu iddia edilmez; gelecekteki e-posta/simülatör de aynı talep servisini kullanmalı.
+Oluşturma, durum değiştirme, izin/vardiya/beceri/kapasite değişimi ve arka plan kontrolü aynı kilit protokolünü kullanır. Taleple atama, geçmiş ve audit aynı transaction içinde commit edilir. Doğrudan SQL ile bu protokolü atlayan bir yazıcının kapasiteyi koruduğu iddia edilmez; e-posta ve genel simülatör aynı talep servisini kullanır.
 
 Bu tasarım doğruluğu ve açıklanabilirliği hedefler; tüm atama yazıcılarını sıraya aldığı için yüksek hacimde darboğaz olabilir. Çok büyük ölçek için havuz/takım bazlı kilitleme veya SERIALIZABLE + retry değerlendirilebilir.
 
@@ -72,4 +72,4 @@ Canlı F-3 senaryosu profil değerlerini değiştirmeden liderle kaydeder; sür�
 --- PASS: TestPostgresAssignmentEngine/capacity_reduction_moves_excess_work (0.02s)
 ```
 
-Chromium'da otomatik atanan talep, uzmanı izne alma, devrin geçmişte görünmesi, izni geri kaldırma ve mobil profil kontrolleri PASS. Tarayıcı testi profili izin dışına geri getirir; gerçek devir olayları geçmişte kalır. F-3/T-2, tam doğrulamada PASS; T-3 e-posta ve T-4 varlık/değişiklik adımları da daha sonra tamamlandı; F-4 ve F-7 henüz uygulanmadı.
+Chromium'da otomatik atanan talep, uzmanı izne alma, devrin geçmişte görünmesi, izni geri kaldırma ve mobil profil kontrolleri PASS. Tarayıcı testi profili izin dışına geri getirir; gerçek devir olayları geçmişte kalır. F-3/T-2, tam doğrulamada PASS. Güncel genel sonuçlar README içinde listelenir.
