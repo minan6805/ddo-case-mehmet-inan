@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strconv"
 
 	"destekmasa/internal/assignment"
 )
@@ -95,11 +94,7 @@ func registerAssignment(mux *http.ServeMux, authentication Authenticator, servic
 			assignmentError(w, err)
 			return
 		}
-		cursor := ""
-		if len(history) > limit {
-			history = history[:limit]
-			cursor = strconv.FormatInt(history[len(history)-1].ID, 10)
-		}
+		history, cursor := trimPage(history, limit, func(item assignment.History) int64 { return item.ID })
 		writeJSON(w, 200, map[string]any{"items": history, "next_cursor": cursor})
 	}))
 }

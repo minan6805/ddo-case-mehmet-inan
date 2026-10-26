@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { APIError, request, type User } from './api';
+import { APIError, errorMessage, request, type User } from './api';
 import { formatDate } from './format';
 
 type Article = {
@@ -54,7 +54,7 @@ export function Knowledge({ user, onExpired }: { user: User; onExpired: () => vo
       onExpired();
       return;
     }
-    setError(error instanceof Error ? error.message : 'İşlem tamamlanamadı.');
+    setError(errorMessage(error, 'İşlem tamamlanamadı.'));
   }
   useEffect(() => {
     let active = true;

@@ -40,3 +40,13 @@ func pageParams(w http.ResponseWriter, r *http.Request) (int64, int, bool) {
 	}
 	return before, limit, true
 }
+
+// trimPage consumes the extra row fetched by list queries to detect another page.
+// Authorization and filtering must happen in the query before its row limit.
+func trimPage[T any](items []T, limit int, id func(T) int64) ([]T, string) {
+	if len(items) <= limit {
+		return items, ""
+	}
+	items = items[:limit]
+	return items, strconv.FormatInt(id(items[len(items)-1]), 10)
+}

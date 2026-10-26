@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { APIError, request } from './api';
+import { APIError, errorMessage, request } from './api';
 import { formatDate } from './format';
 
 type Bucket = { code: string; label: string; count: number };
@@ -106,7 +106,7 @@ export function Reports({ onExpired }: { onExpired: () => void }) {
           onExpired();
           return;
         }
-        setError(error instanceof Error ? error.message : 'Rapor hazırlanamadı.');
+        setError(errorMessage(error, 'Rapor hazırlanamadı.'));
       })
       .finally(() => {
         if (active) setLoading(false);

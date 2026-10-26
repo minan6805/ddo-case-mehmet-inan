@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { APIError, request } from './api';
+import { APIError, errorMessage, request } from './api';
 import { formatDate } from './format';
 
 type Run = {
@@ -57,7 +57,7 @@ export function Simulation({ onExpired }: { onExpired: () => void }) {
           onExpired();
           return;
         }
-        setError(error instanceof Error ? error.message : 'Simülasyon durumu alınamadı.');
+        setError(errorMessage(error, 'Simülasyon durumu alınamadı.'));
       } finally {
         pending = false;
         if (active) setLoading(false);

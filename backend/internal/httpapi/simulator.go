@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strconv"
 
 	"destekmasa/internal/auth"
 	"destekmasa/internal/simulator"
@@ -41,11 +40,7 @@ func registerSimulator(mux *http.ServeMux, authentication Authenticator, service
 			simulatorError(w, err)
 			return
 		}
-		cursor := ""
-		if len(items) > limit {
-			items = items[:limit]
-			cursor = strconv.FormatInt(items[len(items)-1].ID, 10)
-		}
+		items, cursor := trimPage(items, limit, func(item simulator.Run) int64 { return item.ID })
 		writeJSON(w, 200, map[string]any{"items": items, "next_cursor": cursor})
 	}))
 	mux.HandleFunc("GET /simulations/{id}", protect(func(w http.ResponseWriter, r *http.Request) {

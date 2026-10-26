@@ -14,6 +14,7 @@ import (
 )
 
 var (
+	runNamePattern    = regexp.MustCompile(`^[A-Za-z0-9-]{1,32}$`)
 	ErrInvalid        = errors.New("invalid simulation configuration")
 	ErrConflict       = errors.New("simulation name already has a different plan")
 	ErrRunning        = errors.New("another simulator process is running")
@@ -32,7 +33,13 @@ type Config struct {
 
 func (c Config) Validate() error {
 	day, err := time.Parse(time.DateOnly, c.Day)
-	if err != nil || day.Format(time.DateOnly) != c.Day || day.Year() < 1 || !regexp.MustCompile(`^[A-Za-z0-9-]{1,32}$`).MatchString(c.Name) || c.Seed < 0 || c.Seed > 2147483647 || c.Count < 4 || c.Count > 800 || c.DaySeconds < 0 || c.DaySeconds > 86400 {
+	if err != nil || day.Format(time.DateOnly) != c.Day || day.Year() < 1 {
+		return ErrInvalid
+	}
+	if !runNamePattern.MatchString(c.Name) || c.Seed < 0 || c.Seed > 2147483647 {
+		return ErrInvalid
+	}
+	if c.Count < 4 || c.Count > 800 || c.DaySeconds < 0 || c.DaySeconds > 86400 {
 		return ErrInvalid
 	}
 	return nil

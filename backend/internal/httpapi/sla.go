@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strconv"
 	"time"
 
 	"destekmasa/internal/sla"
@@ -107,11 +106,7 @@ func registerSLA(mux *http.ServeMux, authentication Authenticator, service SLASe
 			slaError(w, err)
 			return
 		}
-		cursor := ""
-		if len(alerts) > limit {
-			alerts = alerts[:limit]
-			cursor = strconv.FormatInt(alerts[len(alerts)-1].ID, 10)
-		}
+		alerts, cursor := trimPage(alerts, limit, func(item sla.Alert) int64 { return item.ID })
 		writeJSON(w, 200, map[string]any{"items": alerts, "next_cursor": cursor})
 	}))
 	// Read-only calculator: controlled timestamps never change production clocks or ticket data.

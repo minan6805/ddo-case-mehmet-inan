@@ -5,3 +5,8 @@ export function formatDate(value: string, timeZone?: string): string {
     timeZone,
   }).format(new Date(value));
 }
+
+export function timeToMinutes(value: string): number {
+  const [hour, minute] = value.split(':').map(Number);
+  return hour * 60 + minute;
+}

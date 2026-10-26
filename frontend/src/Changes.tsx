@@ -1,6 +1,6 @@
 import { formatDate as date } from './format';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { APIError, request, type User } from './api';
+import { APIError, errorMessage, request, type User } from './api';
 import { ImpactView, type Asset, type Impact } from './Assets';
 type Change = {
   id: number;
@@ -104,7 +104,7 @@ export function Changes({ user, onExpired }: { user: User; onExpired: () => void
       onExpired();
       return;
     }
-    setError(e instanceof Error ? e.message : 'Değişiklik işlemi tamamlanamadı.');
+    setError(errorMessage(e, 'Değişiklik işlemi tamamlanamadı.'));
   }
   useEffect(() => {
     let active = true;

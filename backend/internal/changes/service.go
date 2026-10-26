@@ -383,49 +383,9 @@ func (s *Service) Action(ctx context.Context, user auth.User, id int64, in Actio
 	if old.Version != in.Version {
 		return Change{}, ErrConflict
 	}
-	next := ""
-	switch in.Action {
-	case "submit":
-		if old.Status == "draft" {
-			next = "submitted"
-		}
-	case "approve":
-		if old.Status == "submitted" {
-			next = "approved"
-		}
-	case "reject":
-		if old.Status == "submitted" {
-			next = "rejected"
-		}
-	case "request_changes":
-		if old.Status == "submitted" {
-			next = "draft"
-		}
-	case "revise":
-		if old.Status == "submitted" || old.Status == "approved" {
-			next = "draft"
-		}
-	case "cancel":
-		if old.Status == "draft" || old.Status == "submitted" || old.Status == "approved" {
-			next = "cancelled"
-		}
-	case "start":
-		if old.Status == "approved" {
-			next = "implementing"
-		}
-	case "complete":
-		if old.Status == "implementing" {
-			next = "completed"
-		}
-	case "fail":
-		if old.Status == "implementing" {
-			next = "failed"
-		}
-	default:
-		return Change{}, ErrInvalid
-	}
-	if next == "" {
-		return Change{}, ErrTransition
+	next, err := nextStatus(old.Status, in.Action)
+	if err != nil {
+		return Change{}, err
 	}
 	if in.Action == "start" && (s.now().Before(old.StartsAt) || !s.now().Before(old.EndsAt)) {
 		return Change{}, ErrTransition

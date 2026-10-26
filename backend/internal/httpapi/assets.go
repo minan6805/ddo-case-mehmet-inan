@@ -54,11 +54,7 @@ func registerAssets(mux *http.ServeMux, authentication Authenticator, service As
 			assetError(w, err)
 			return
 		}
-		cursor := ""
-		if len(items) > limit {
-			items = items[:limit]
-			cursor = strconv.FormatInt(items[len(items)-1].ID, 10)
-		}
+		items, cursor := trimPage(items, limit, func(item auth.User) int64 { return item.ID })
 		writeJSON(w, 200, map[string]any{"items": items, "next_cursor": cursor})
 	}))
 
@@ -72,11 +68,7 @@ func registerAssets(mux *http.ServeMux, authentication Authenticator, service As
 			assetError(w, err)
 			return
 		}
-		cursor := ""
-		if len(items) > limit {
-			items = items[:limit]
-			cursor = strconv.FormatInt(items[len(items)-1].ID, 10)
-		}
+		items, cursor := trimPage(items, limit, func(item assets.Asset) int64 { return item.ID })
 		writeJSON(w, 200, assets.Page{Items: items, NextCursor: cursor})
 	}))
 	mux.HandleFunc("POST /assets", write(func(w http.ResponseWriter, r *http.Request) {

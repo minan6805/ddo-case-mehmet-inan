@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { APIError, request, type User } from './api';
+import { APIError, errorMessage, request, type User } from './api';
 export type Asset = {
   id: number;
   code: string;
@@ -157,7 +157,7 @@ export function Assets({ user, onExpired }: { user: User; onExpired: () => void 
       onExpired();
       return;
     }
-    setError(error instanceof Error ? error.message : 'Varlık işlemi tamamlanamadı.');
+    setError(errorMessage(error, 'Varlık işlemi tamamlanamadı.'));
   }
   useEffect(() => {
     let active = true;

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strconv"
 
 	"destekmasa/internal/auth"
 	"destekmasa/internal/tickets"
@@ -30,11 +29,7 @@ func registerComments(mux *http.ServeMux, authentication Authenticator, service 
 			commentError(w, err)
 			return
 		}
-		cursor := ""
-		if len(items) > limit {
-			items = items[:limit]
-			cursor = strconv.FormatInt(items[len(items)-1].ID, 10)
-		}
+		items, cursor := trimPage(items, limit, func(item tickets.Comment) int64 { return item.ID })
 		writeJSON(w, 200, map[string]any{"items": items, "next_cursor": cursor})
 	}))
 	mux.HandleFunc("POST /tickets/{id}/comments", requireRole(authentication, nil, func(w http.ResponseWriter, r *http.Request) {

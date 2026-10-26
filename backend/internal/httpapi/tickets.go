@@ -108,11 +108,7 @@ func registerTickets(mux *http.ServeMux, authentication Authenticator, service T
 			ticketError(w, err)
 			return
 		}
-		cursor := ""
-		if len(items) > options.Limit {
-			items = items[:options.Limit]
-			cursor = strconv.FormatInt(items[len(items)-1].ID, 10)
-		}
+		items, cursor := trimPage(items, options.Limit, func(item tickets.Ticket) int64 { return item.ID })
 		writeJSON(w, 200, tickets.Page{Items: items, NextCursor: cursor})
 	}))
 	mux.HandleFunc("GET /tickets/{id}", protect(func(w http.ResponseWriter, r *http.Request) {
