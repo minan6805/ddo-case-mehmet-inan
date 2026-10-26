@@ -33,7 +33,7 @@ En fazla 500 uzman profili desteklenir; aşılırsa eksik tablo yerine 409 `REPO
 
 ## Tutarlılık ve doğrulama
 
-Bütün sorgular aynı `REPEATABLE READ READ ONLY` transaction'ındadır. Eşzamanlı talep değişikliği, raporun bir bölümüne girip diğerine giremez. `snapshot_at` rapor transaction başlangıcıdır; SLA kontrol zamanı değildir. Oluşturulma tarihine göre seçim `tickets_created_category_idx` indeksini kullanabilecek şekilde yazılmıştır; performans ölçümü ayrıca yapılacaktır.
+Bütün sorgular aynı `REPEATABLE READ READ ONLY` transaction'ındadır. Eşzamanlı talep değişikliği, raporun bir bölümüne girip diğerine giremez. `snapshot_at` rapor transaction başlangıcıdır; SLA kontrol zamanı değildir. Oluşturulma tarihine göre seçim `tickets_created_category_idx` indeksini kullanabilecek şekilde yazılmıştır; iki gerçek sorgunun indeksli/indekssiz karşılaştırması [INDEXES.md](INDEXES.md) içinde belgelenmiştir.
 
 - `make verify-reports`: canlı API'de rol kontrolü, tarih/kategori doğrulaması, gerçek talep listesine karşı bağımsız sayım, dağılımlar, global yük ve boş veri; oluşturduğu örnek talep sonunda kapatılır.
 - `make prove-reports`: ayrı PostgreSQL'de gün sınırları, dağılımlar, tekilleştirme, tam bütçe sınırı, ortalamalar, salt okunurluk, HTTP erişimi, eşzamanlı yazı sırasında tutarlılık ve uzman sınırı.

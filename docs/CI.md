@@ -28,6 +28,6 @@ Başarılı commit'ten sonra yapılan en iyi çaba rollback temizliğinin dönü
 
 GitHub'da bir commit'in yanındaki kontrol durumundan veya deponun Actions sekmesinden üç işin sonucuna ulaşılır. Başarısız adım, düzeltilecek komutu ve test çıktısını gösterir. Docker işinde başarısızlık olursa API ve arayüzün son logları da yazılır.
 
-Otomatik kontrollerin geçmesi işlevsel davranış ve derleme için kanıttır. Kullanıcı kabul testleri, temiz kurulum süresi, OpenAPI ve indeks performans ölçümleri ayrı teslim adımlarıdır.
+Otomatik kontrollerin geçmesi işlevsel davranış ve derleme için kanıttır. Compose işi OpenAPI sözleşmesini de doğrular. Kullanıcı kabul testleri, temiz kurulum süresi ve indeks performans ölçümleri ayrı kontrollerdir; sonuçları ilgili teknik belgelerde bulunur.
 
 Entegrasyon betiği her çağrıda ayrı bir `destekmasa-tests-<zaman>-<pid>` Compose projesi oluşturur. Uygulamanın `COMPOSE_PROJECT_NAME` değişkeni bu adı değiştiremez. Böylece iki kanıt komutu aynı anda çalışırken birbirlerinin PostgreSQL konteynerlerini durdurmaz. Çıkışta ve INT/TERM kesintilerinde betik kendi projesini temizler; test derleme imajı önbellek için ortak kalır.

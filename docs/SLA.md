@@ -6,7 +6,7 @@ SLA, ilk yanıt ve çözüm için verilen iş süresi hedefidir. Talep detayınd
 
 Cuma 17.30'da başlayan 60 iş dakikalık hedefin sonu pazartesi 09.00'dır: cuma 30 dakika, pazartesi 08.30'dan itibaren 30 dakika.
 
-Bu sürümde uzman/lider/admin tarafından talebin **ilk işleme alınması**, kullanıcıya verilen kabul yanıtıdır. Talep detayında bu kabulün tarihi gösterilir. Bu bir e-posta veya serbest metin yorumunun gönderildiği anlamına gelmez; gerçek e-posta/yorum akışı T-3 aşamasında eklenecek.
+Bu sürümde uzman/lider/admin tarafından talebin **ilk işleme alınması**, kullanıcıya verilen kabul yanıtıdır. Talep detayında bu kabulün tarihi gösterilir. Bu bir e-posta veya serbest metin yorumunun gönderildiği anlamına gelmez; gelen e-posta ve yorum akışı T-3 kapsamında mevcuttur. Dışarıya e-posta teslimi uygulanmaz.
 
 Çözüm sayacı:
 

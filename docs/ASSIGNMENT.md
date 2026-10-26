@@ -56,7 +56,7 @@ Tek günlük pencere ve seçilen hafta günleri desteklenir; gece yarısını a�
 ```bash
 make verify-assignment  # canlı F-3 API + ayrı PostgreSQL'de T-2
 make prove-assignment   # yalnızca atama PostgreSQL grubu
-make verify             # mevcut API kimlikleri + tüm PostgreSQL testleri; eksikler ayrıca FAIL
+make verify             # tüm F/T kimlikleri + simülatör ve PostgreSQL kanıtları; hatada başarısız çıkış
 ```
 
 Canlı F-3 senaryosu profil değerlerini değiştirmeden liderle kaydeder; sürüm/audit artar. Otomatik atama, sahiplik/rol sınırı, geçmiş, tekrar denemede atama sabitliği, bana atananlar ve kapasite kontrol edilir. `[Atama doğrulama]` başlıklı talep açılıp kapatılır. İzin/devir ve yarışın kapsamlı kanıtı izole PostgreSQL'dedir; normal demo verisi oradan etkilenmez.
