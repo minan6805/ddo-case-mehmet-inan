@@ -83,9 +83,22 @@ GitHub Actions, her gönderimde Go build/lint/test, arayüz derlemesi ve Docker 
 
 API sözleşmesi: [OpenAPI 3.0.3](backend/internal/httpapi/openapi.json); çalışan API’den `GET /openapi.json` ile de alınabilir. Kullanım ve doğrulama: [docs/API.md](docs/API.md). İstek örnekleri: [requests.http](requests.http).
 
+## İndeks ölçümleri
+
+200.000 sentetik talep ve 1000 çalışanla PostgreSQL 16 üzerinde gerçek sorgular ölçüldü. Yedi sıcak çalıştırmanın medyanları:
+
+| Sorgu | İndeksli | Yalnız ilgili indeks kaldırılınca |
+|---|---:|---:|
+| Çalışanın ID imleçli talep listesi | 0,173 ms | 0,977 ms |
+| Tarih/kategori filtreli rapor özeti | 0,551 ms | 5,064 ms |
+
+İlk planda `Index Scan tickets_requester_id_desc_idx` doğrudan 21 kayıt getirir (30 shared hit); indeks olmadan 180 aday kayıt sıralanır (210 shared hit). İkinci planda `Bitmap Index Scan tickets_created_category_idx` 137 eşleşmeyi bulur (üst düğüm 144 shared hit); bu indeks olmadan alternatif indeks ve kategori filtresi kullanılır (1764 shared hit).
+
+Ölçüm koşulları, tekrar çalıştırma komutu ve sınırlar: [docs/INDEXES.md](docs/INDEXES.md). Tam `EXPLAIN (ANALYZE, BUFFERS)` çıktıları: [docs/INDEX-RESULTS.json](docs/INDEX-RESULTS.json). Sonuçlar sentetik veri/sıcak önbellek içindir; genel üretim performansı taahhüdü değildir.
+
 ## Kalan işler ve sınırlar
 
-- İndeks ölçümleri ve son teslim kontrolleri.
+- Son teslim kontrolleri.
 - E-posta akışı simülatörle çalışır; gerçek SMTP/IMAP bağlantısı yoktur.
 - Bakım planlarının uygulanması uygulama dışında yapılır; uygulama planı, onayı ve sonucu kaydeder.
 - Takım bazlı destek kuyruğu, parola değiştirme, giriş hızı sınırlaması ve süresi dolmuş oturumların periyodik temizliği henüz yoktur.
