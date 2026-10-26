@@ -1,3 +1,4 @@
+import { randomUUID } from './uuid';
 import { formatDate as date } from './format';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { APIError, errorMessage, request, type User } from './api';
@@ -224,7 +225,7 @@ export function Changes({ user, onExpired }: { user: User; onExpired: () => void
       };
       const fingerprint = JSON.stringify(body);
       if (pending.current?.fingerprint !== fingerprint)
-        pending.current = { fingerprint, key: crypto.randomUUID() };
+        pending.current = { fingerprint, key: randomUUID() };
       const d = await request<{ change: Change }>(creating ? '/changes' : `/changes/${selected}`, {
         method: creating ? 'POST' : 'PUT',
         body: fingerprint,
@@ -253,7 +254,7 @@ export function Changes({ user, onExpired }: { user: User; onExpired: () => void
     setNotice('');
     const body = JSON.stringify({ action, note: note.trim(), version: detail.version });
     if (pending.current?.fingerprint !== body)
-      pending.current = { fingerprint: body, key: crypto.randomUUID() };
+      pending.current = { fingerprint: body, key: randomUUID() };
     try {
       await request(`/changes/${selected}/actions`, {
         method: 'POST',

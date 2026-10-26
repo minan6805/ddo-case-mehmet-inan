@@ -1,3 +1,4 @@
+import { randomUUID } from './uuid';
 import { priorityLabels } from './labels';
 import { formatDate } from './format';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -80,7 +81,7 @@ function CreateTicket({
     try {
       const fingerprint = JSON.stringify(body);
       if (pending.current?.fingerprint !== fingerprint)
-        pending.current = { fingerprint, key: crypto.randomUUID() };
+        pending.current = { fingerprint, key: randomUUID() };
       const result = await request<{ ticket: Ticket }>('/tickets', {
         method: 'POST',
         headers: { 'Idempotency-Key': pending.current.key },

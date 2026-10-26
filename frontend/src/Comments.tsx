@@ -1,3 +1,4 @@
+import { randomUUID } from './uuid';
 import { formatDate } from './format';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { APIError, errorMessage, request } from './api';
@@ -100,7 +101,7 @@ export function TicketComments({
     setNotice('');
     const fingerprint = JSON.stringify({ body: body.trim(), visibility });
     if (pending.current?.fingerprint !== fingerprint)
-      pending.current = { fingerprint, key: crypto.randomUUID() };
+      pending.current = { fingerprint, key: randomUUID() };
     try {
       await request(`/tickets/${id}/comments`, {
         method: 'POST',

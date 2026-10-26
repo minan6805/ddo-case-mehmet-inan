@@ -1,3 +1,4 @@
+import { randomUUID } from './uuid';
 import { useRef, useState, type FormEvent } from 'react';
 import { APIError, errorMessage, request, type User } from './api';
 
@@ -8,7 +9,7 @@ type Receipt = {
   created_ticket: boolean;
   duplicate: boolean;
 };
-const newID = () => `<demo-${crypto.randomUUID()}@destekmasa.local>`;
+const newID = () => `<demo-${randomUUID()}@destekmasa.local>`;
 const base64 = (data: Uint8Array) => {
   let binary = '';
   for (let i = 0; i < data.length; i += 32768)
@@ -64,7 +65,7 @@ export function EmailSimulator({
         fileVersion,
       });
       if (pending.current?.fingerprint !== fingerprint) {
-        const boundary = `demo-${crypto.randomUUID()}`;
+        const boundary = `demo-${randomUUID()}`;
         const headers = `Message-ID: ${messageID}\r\nFrom: ${from}\r\nSubject: ${subject}\r\nMIME-Version: 1.0\r\n`;
         let raw =
           headers + 'Content-Type: text/plain; charset=utf-8\r\n\r\n' + body;

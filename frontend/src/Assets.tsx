@@ -1,3 +1,4 @@
+import { randomUUID } from './uuid';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { APIError, errorMessage, request, type User } from './api';
 export type Asset = {
@@ -304,7 +305,7 @@ export function Assets({
     try {
       const fingerprint = JSON.stringify(body);
       if (pending.current?.fingerprint !== fingerprint)
-        pending.current = { fingerprint, key: crypto.randomUUID() };
+        pending.current = { fingerprint, key: randomUUID() };
       const p = await request<{ asset: Asset }>(
         creating ? '/assets' : `/assets/${selected}`,
         {

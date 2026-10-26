@@ -66,3 +66,11 @@ Aynı gün simülatörün iş adımları zamanlama/checkpoint kodundan ayrıldı
 Açık/koyu/sistem teması eklenmesinden sonra genel doğrulama yeniden bütün satırlarda PASS verdi. Altı mevcut Playwright akışı koyu görünümde, yeni tema akışı ise iki görünümde çalıştırıldı. Tema akışında işletim sistemi tercihi, elle seçim, yenileme sonrası kalıcılık, sekmeler arası eşitleme, depolama erişimi reddi, mobil taşma ve bütün modül ekranlarının metin kontrastı kontrol edildi. Görsel kontrol, varlık grafındaki SVG renklerini de kapsar. Bu kontroller bütün olası kullanıcı durumlarında eksiksiz erişilebilirlik garantisi değildir.
 
 `reset-demo` ayrıca boş ve ayrı bir Compose projesinde denendi: onaysız çağrı mevcut test talebini korudu; onaylı çağrı talepleri temizledi, eski oturumu geçersiz kıldı ve dört varlık/üç makale/üç uzman seed durumunu geri getirdi. Asıl uygulamanın veritabanı sıfırlanmadı.
+
+## HTTP IP erişiminde mobil giriş düzeltmesi
+
+Gerçek Tailscale IP adresiyle HTTP üzerinden çalışan → çıkış → admin girişi sırasında boş ekran yeniden üretildi. Hata `crypto.randomUUID is not a function` idi: bu fonksiyon HTTPS/localhost güvenli bağlamında bulunur; IP üzerinden HTTP bağlantısında bulunmaz. E-posta simülatörünün ilk render işlemi hata veriyordu.
+
+Talep, mesaj, e-posta, birleştirme/bölme, bilgi bankası, varlık ve değişiklik işlemlerinde kimlik üretimi ortak yardımcıya taşındı. Native randomUUID varsa kullanılır; yoksa getRandomValues ile UUID v4 üretilir. Math.random kullanılmaz. Gerçek HTTP IP adresinde açık/koyu mobil hesap seçimi ve admin giriş/çıkışı geçti. browser-http-login.cjs ayrıca güvenli bağlam olmayan HTTP adresinde 390px genişlikte altı ardışık rol giriş/çıkışını, Message-ID biçimini ve boş ekran/JavaScript hatası olmamasını denetler. Önceki localhost tarayıcı kanıtları bu bağlam farkını kapsamıyordu.
+
+Ayrı ve boş bir Compose ortamında, localhost yerine HTTP alan adıyla mevcut kapsamlı tarayıcı akışı da geçti: talep oluşturma, iç not/paylaşılan mesaj, SLA bekleme/devam, e-posta/ek/Message-ID tekrarı, bölme/birleştirme, izin devri ve yönetici takvim/hedef kaydı. HTTP alan adı tarayıcı ve test istemcisine yerel çözülerek güvenli bağlam dışında çalıştırıldı. Geçici ortam temizlendi; ana veritabanı sıfırlanmadı.

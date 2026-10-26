@@ -1,3 +1,4 @@
+import { randomUUID } from './uuid';
 import { useEffect, useRef, useState } from 'react';
 import { APIError, errorMessage, request } from './api';
 
@@ -116,7 +117,7 @@ export function ThreadTools({
         : { title: title.trim(), comment_ids: selected };
     const fingerprint = JSON.stringify({ kind, body });
     if (pending.current?.fingerprint !== fingerprint)
-      pending.current = { fingerprint, key: crypto.randomUUID() };
+      pending.current = { fingerprint, key: randomUUID() };
     try {
       const result = await request<{ result: Result }>(
         `/tickets/${id}/${kind}`,

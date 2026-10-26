@@ -1,3 +1,4 @@
+import { randomUUID } from './uuid';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { APIError, errorMessage, request, type User } from './api';
 import { formatDate } from './format';
@@ -132,7 +133,7 @@ export function Knowledge({ user, onExpired }: { user: User; onExpired: () => vo
     };
     const fingerprint = JSON.stringify(input);
     if (pending.current?.fingerprint !== fingerprint)
-      pending.current = { fingerprint, key: crypto.randomUUID() };
+      pending.current = { fingerprint, key: randomUUID() };
     try {
       const result = await request<{ article: Article }>(
         article ? `/knowledge/${article.id}` : '/knowledge',
