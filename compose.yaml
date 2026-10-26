@@ -45,7 +45,11 @@ services:
       retries: 20
     init: true
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        DEMO_MODE: ${DEMO_SEED:-true}
+        DEMO_PASSWORD: ${DEMO_PASSWORD:-DemoDestek2026!}
     ports:
       - '127.0.0.1:${FRONTEND_PORT:-3000}:8080'
     depends_on:

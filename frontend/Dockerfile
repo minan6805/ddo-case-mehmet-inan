@@ -3,7 +3,13 @@ WORKDIR /src
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
-RUN npm run build
+ARG DEMO_MODE=false
+ARG DEMO_PASSWORD
+RUN if [ "$DEMO_MODE" = true ]; then \
+      export VITE_DEMO_ENABLED=true VITE_DEMO_PASSWORD="$DEMO_PASSWORD"; \
+    else \
+      export VITE_DEMO_ENABLED=false VITE_DEMO_PASSWORD=; \
+    fi; npm run build
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf

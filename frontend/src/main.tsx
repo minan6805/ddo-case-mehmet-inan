@@ -15,6 +15,7 @@ import { Knowledge } from './Knowledge';
 import { Reports } from './Reports';
 import { Simulation } from './Simulation';
 import { ThemeMenu } from './ThemeMenu';
+import { DemoAccounts } from './DemoAccounts';
 
 type Status = 'loading' | 'ready' | 'error';
 const roleLabels: Record<string, string> = {
@@ -132,6 +133,15 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
           {busy ? 'Giriş yapılıyor…' : 'Giriş yap'}
         </button>
       </form>
+      <DemoAccounts
+        busy={busy}
+        onSelect={(email, password) => {
+          setEmail(email);
+          setPassword(password);
+          setError('');
+          document.getElementById('email')?.focus();
+        }}
+      />
     </section>
   );
 }

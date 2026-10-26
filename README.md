@@ -36,6 +36,8 @@ Tüm demo hesaplarının başlangıç parolası: **`DemoDestek2026!`**
 
 Demo kullanıcıları `DEMO_SEED=true` ile oluşturulur. `DEMO_PASSWORD` ilk oluşturma parolasını belirler; mevcut hesapların parolalarını değiştirmez. Diğer yerel ayarlar [.env.example](.env.example) dosyasındadır. Bu hesaplar yerel demo içindir.
 
+Demo modunda giriş ekranı hesapları ve ortak demo parolasını gösterir. Hesap seçimi formu doldurur; giriş ayrıca onaylanır. Görünüm derleme sırasında `DEMO_SEED` ve `DEMO_PASSWORD` ayarlarından hazırlanır; ayarlar değişince `docker compose up --build -d --wait` ile yeniden derleyin. `DEMO_SEED=false` ile derlenen arayüzde bu bölüm ve parola bulunmaz. Demo modu açıkken parola tarayıcıya açıkça gönderilir; yalnız demo hesabı parolası kullanın. Seed mevcut parolaları değiştirmediği için ayar, veritabanındaki demo parolasıyla eşleşmelidir.
+
 ## Özellikler
 
 - **Talepler:** Talep oluşturma, kategori/öncelik, durum takibi ve rol/sahiplik kontrolü. Çalışanlar kendi taleplerini, destek ekibi ortak kuyruğu görür.
