@@ -1,0 +1,99 @@
+{
+  "date": "2026-10-26",
+  "startup": {
+    "elapsed_seconds": 55.091,
+    "exit_code": 0,
+    "docker": "27.5.1",
+    "compose": "2.33.0",
+    "initial_images": 0,
+    "scope": "Separate Docker daemon with empty image/build cache and empty database; pulls and builds included; test harness daemon initialization excluded."
+  },
+  "verification": {
+    "elapsed_seconds": 63.166,
+    "exit_code": 0,
+    "scope": "make verify on the newly seeded, isolated Docker daemon; test and simulator images built inside this daemon."
+  },
+  "postgresql_scenarios_passed": 141,
+  "checks": [
+    {
+      "id": "HEALTH",
+      "result": "PASS"
+    },
+    {
+      "id": "WEB-HEALTH",
+      "result": "PASS"
+    },
+    {
+      "id": "WEB",
+      "result": "PASS"
+    },
+    {
+      "id": "AUTH",
+      "result": "PASS"
+    },
+    {
+      "id": "RBAC",
+      "result": "PASS"
+    },
+    {
+      "id": "F-1",
+      "result": "PASS"
+    },
+    {
+      "id": "F-2",
+      "result": "PASS"
+    },
+    {
+      "id": "T-1",
+      "result": "PASS"
+    },
+    {
+      "id": "F-3",
+      "result": "PASS"
+    },
+    {
+      "id": "T-2",
+      "result": "PASS"
+    },
+    {
+      "id": "COMMENTS",
+      "result": "PASS"
+    },
+    {
+      "id": "EMAIL",
+      "result": "PASS"
+    },
+    {
+      "id": "THREADS",
+      "result": "PASS"
+    },
+    {
+      "id": "T-3",
+      "result": "PASS"
+    },
+    {
+      "id": "F-4",
+      "result": "PASS"
+    },
+    {
+      "id": "F-5",
+      "result": "PASS"
+    },
+    {
+      "id": "F-6",
+      "result": "PASS"
+    },
+    {
+      "id": "T-4",
+      "result": "PASS"
+    },
+    {
+      "id": "F-7",
+      "result": "PASS"
+    },
+    {
+      "id": "SIMULATOR",
+      "result": "PASS"
+    }
+  ]
+}

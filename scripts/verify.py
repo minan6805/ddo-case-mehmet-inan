@@ -12,7 +12,7 @@ import urllib.request
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 def load_settings():
@@ -819,6 +819,10 @@ def verify_simulator():
 
 
 def verify_reports():
+    try:
+        report_timezone = ZoneInfo('Europe/Istanbul')
+    except ZoneInfoNotFoundError as error:
+        raise AssertionError('Rapor kontrolü için IANA saat dilimi verisi gerekli. İşletim sisteminin tzdata paketini veya Python tzdata paketini kurun.') from error
     participants = []
     ticket_id = None
     leader = None
@@ -838,7 +842,7 @@ def verify_reports():
         status, created = call(employee, '/tickets', 'POST', {'title': '[Doğrulama] Rapor verisi', 'description': 'Gerçek API kayıtlarıyla rapor tutarlılığı', 'category': 'software', 'priority': 'critical'}, {'Idempotency-Key': str(uuid.uuid4())})
         expect(status, 201, 'Rapor için talep')
         ticket_id = created['ticket']['id']
-        day = datetime.fromisoformat(created['ticket']['created_at'].replace('Z', '+00:00')).astimezone(ZoneInfo('Europe/Istanbul')).date().isoformat()
+        day = datetime.fromisoformat(created['ticket']['created_at'].replace('Z', '+00:00')).astimezone(report_timezone).date().isoformat()
         status, report = call(leader, '/reports?' + urllib.parse.urlencode({'from': day, 'to': day, 'category': 'software'}))
         expect(status, 200, 'Filtreli rapor')
         tickets_in_range = []
@@ -847,7 +851,7 @@ def verify_reports():
             status, page = call(leader, '/tickets?limit=100' + ('&before=' + cursor if cursor else ''))
             expect(status, 200, 'Bağımsız talep sayımı')
             for ticket in page['items']:
-                created_day = datetime.fromisoformat(ticket['created_at'].replace('Z', '+00:00')).astimezone(ZoneInfo('Europe/Istanbul')).date().isoformat()
+                created_day = datetime.fromisoformat(ticket['created_at'].replace('Z', '+00:00')).astimezone(report_timezone).date().isoformat()
                 if created_day == day and ticket['category'] == 'software':
                     tickets_in_range.append(ticket)
             cursor = page['next_cursor']

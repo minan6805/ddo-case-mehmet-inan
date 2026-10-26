@@ -63,7 +63,7 @@ Teknik kararlar: [DECISIONS.md](DECISIONS.md).
 
 ## Testler
 
-Önce uygulamayı başlatın. Make ve Python 3 ile aşağıdaki komutlar çalıştırılabilir; veritabanı testleri ayrı bir Docker ortamı kullanır.
+Önce uygulamayı başlatın. Make, Python 3.9+ ve IANA saat dilimi verisi (`tzdata`) ile aşağıdaki komutlar çalıştırılabilir; veritabanı testleri ayrı bir Docker ortamı kullanır.
 
 | Komut | Kapsam |
 |---|---|
@@ -72,12 +72,14 @@ Teknik kararlar: [DECISIONS.md](DECISIONS.md).
 | `make verify-openapi` | OpenAPI sözleşmesinin biçim ve referans kontrolü |
 | `make test` | Go testleri |
 | `make test-integration` | Gerçek PostgreSQL ile entegrasyon testleri |
-| `make verify` | Uygulama kontrolleri ve tamamlanmamış gereksinimler |
+| `make verify` | Bütün özellikler ve çekirdek görevler |
 | `make simulate` | 800 taleplik günlük iş yükü |
 | `make simulate-email` | Tekrarlanabilir e-posta örnekleri |
 | `make load` | SLA hesaplama ucunda kısa yük testi |
 
-`make verify`, F-1–F-7 özelliklerini, T-1–T-4 çekirdek görevlerini ve simülatörü denetler; herhangi bir kontrol başarısızsa sıfırdan farklı çıkış kodu döndürür. 25 Ekim doğrulamasında 141 PostgreSQL entegrasyon senaryosu, Go race/vet kontrolleri, arayüz derlemesi ve simülatör dahil altı tarayıcı senaryosu (mobil kontroller dahil) başarılıdır. Yük testinin kapsamı ve ölçümleri: [docs/LOAD-RESULTS.md](docs/LOAD-RESULTS.md).
+`make verify`, F-1–F-7 özelliklerini, T-1–T-4 çekirdek görevlerini ve simülatörü denetler; herhangi bir kontrol başarısızsa sıfırdan farklı çıkış kodu döndürür. 26 Ekim doğrulamasında 141 PostgreSQL entegrasyon senaryosu, Go race/vet kontrolleri, arayüz derlemesi ve simülatör dahil altı tarayıcı senaryosu (mobil kontroller dahil) başarılıdır. Yük testinin kapsamı ve ölçümleri: [docs/LOAD-RESULTS.md](docs/LOAD-RESULTS.md).
+
+Boş Docker önbelleği ve boş veritabanıyla ölçülen başlangıç **55,1 saniye**, ardından `make verify` **63,2 saniye** sürdü; 20 kontrolün tamamı PASS verdi. Yöntem ve kapsam: [docs/DELIVERY-CHECKS.md](docs/DELIVERY-CHECKS.md).
 
 GitHub Actions, her gönderimde Go build/lint/test, arayüz derlemesi ve Docker üzerinden genel doğrulamayı çalıştırır. Ayrıntılar: [docs/CI.md](docs/CI.md).
 
@@ -96,9 +98,7 @@ API sözleşmesi: [OpenAPI 3.0.3](backend/internal/httpapi/openapi.json); çalı
 
 Ölçüm koşulları, tekrar çalıştırma komutu ve sınırlar: [docs/INDEXES.md](docs/INDEXES.md). Tam `EXPLAIN (ANALYZE, BUFFERS)` çıktıları: [docs/INDEX-RESULTS.json](docs/INDEX-RESULTS.json). Sonuçlar sentetik veri/sıcak önbellek içindir; genel üretim performansı taahhüdü değildir.
 
-## Kalan işler ve sınırlar
-
-- Son teslim kontrolleri.
+## Bilinen sınırlar
 - E-posta akışı simülatörle çalışır; gerçek SMTP/IMAP bağlantısı yoktur.
 - Bakım planlarının uygulanması uygulama dışında yapılır; uygulama planı, onayı ve sonucu kaydeder.
 - Takım bazlı destek kuyruğu, parola değiştirme, giriş hızı sınırlaması ve süresi dolmuş oturumların periyodik temizliği henüz yoktur.
@@ -106,6 +106,9 @@ API sözleşmesi: [OpenAPI 3.0.3](backend/internal/httpapi/openapi.json); çalı
 
 ## Teknik belgeler
 
+- [Teslim doğrulaması](docs/DELIVERY-CHECKS.md)
+- [OpenAPI kullanımı](docs/API.md)
+- [İndeks ölçümleri](docs/INDEXES.md)
 - [Günlük iş yükü simülatörü](docs/SIMULATOR.md)
 - [Raporlar](docs/REPORTS.md)
 - [Bilgi bankası](docs/KNOWLEDGE.md)
