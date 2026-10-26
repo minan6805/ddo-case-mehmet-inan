@@ -18,7 +18,7 @@ Mevcut `.env` dosyanız varsa ilk komutu atlayın.
 - PostgreSQL yalnızca Compose ağı üzerinden erişilir.
 - Durdurma: `docker compose down`. Veriler Docker volume içinde korunur.
 
-Arayüz varsayılan olarak teslim portu 3000 üzerinde çalışır. Portlar `.env` üzerinden değiştirilebilir.
+Arayüz varsayılan olarak teslim portu 3000 üzerinde çalışır. Portlar `.env` üzerinden değiştirilebilir. Sağ üstteki **Tema** menüsünden Sistem, Açık veya Koyu seçilebilir; seçim tarayıcıda hatırlanır. Sistem seçeneği işletim sisteminin görünümünü izler.
 
 ## Demo hesapları
 
@@ -55,7 +55,7 @@ Demo kullanıcıları `DEMO_SEED=true` ile oluşturulur. `DEMO_PASSWORD` ilk olu
 Tarayıcı → React / Nginx → Go HTTP API → PostgreSQL 16
 ```
 
-React ve TypeScript arayüzü oluşturur; Vite derler. Nginx arayüzü sunar ve `/api` isteklerini Go API'ye yönlendirir. API, Go standart HTTP kütüphanesi ve pgx kullanır. Veritabanı migrasyonları başlangıçta uygulanır.
+React ve TypeScript arayüzü oluşturur; Vite derler. Rol bazlı ekranlar, etkileşimli formlar ve ortak bileşenler için React; veri alanı uyuşmazlıklarını derlemede yakalamak için TypeScript seçildi. Vite geliştirme ve statik üretim derlemesini sade tutar. Nginx arayüzü sunar ve `/api` isteklerini Go API'ye yönlendirir. API, Go standart HTTP kütüphanesi ve pgx kullanır. Veritabanı migrasyonları başlangıçta uygulanır.
 
 Kimlik doğrulama bcrypt parola özeti ve HttpOnly oturum çereziyle yapılır. Yetkiler sunucuda kontrol edilir. Kritik işlemler ve denetim kayıtları aynı veritabanı transaction'ında tamamlanır.
 
@@ -77,7 +77,29 @@ Teknik kararlar: [DECISIONS.md](DECISIONS.md).
 | `make simulate-email` | Tekrarlanabilir e-posta örnekleri |
 | `make load` | SLA hesaplama ucunda kısa yük testi |
 
-`make verify`, F-1–F-7 özelliklerini, T-1–T-4 çekirdek görevlerini ve simülatörü denetler; herhangi bir kontrol başarısızsa sıfırdan farklı çıkış kodu döndürür. 26 Ekim doğrulamasında 141 PostgreSQL entegrasyon senaryosu, Go race/vet kontrolleri ve arayüz derlemesi başarılıdır. 25 Ekim’de simülatör dahil altı otomatik tarayıcı senaryosu (mobil kontroller dahil) geçti; 26 Ekim’de kullanıcıyla temel ekran ve rol/görünürlük kabul kontrolleri de tamamlandı. Yük testinin kapsamı ve ölçümleri: [docs/LOAD-RESULTS.md](docs/LOAD-RESULTS.md).
+### Özellik bazında kontrol
+
+| Kimlik | Komut | Beklenen davranış |
+|---|---|---|
+| F-1 | `make verify-tickets` | Talep oluşur; durum akışı çalışır; başka çalışanın kaydı reddedilir. |
+| F-2 / T-1 | `make verify-sla` | İş saatleri/tatiller hesaplanır; beklemede çözüm süresi durur; uyarı ve ihlal tekilleşir. |
+| F-3 / T-2 | `make verify-assignment` | Uygun uzman seçilir; eşzamanlı istekler kapasiteyi aşmaz; izinli uzmanın işi yeniden değerlendirilir. |
+| F-4 | `make verify-knowledge` | Uzman taslağı çalışanlardan saklanır; lider yayını ve arama çalışır. |
+| F-5 / F-6 / T-4 | `make verify-t4` | Döngülü graf sonlu hesaplanır; bağımsız CAB onayı ve ortak etki/pencere çakışması denetlenir. |
+| F-7 | `make verify-reports` | Rol kontrolü, tarih/kategori filtreleri, gerçek talep toplamları ve boş rapor doğrulanır. |
+| T-3 | `make verify-t3` | E-posta tekrarı çoğalmaz; yanıt/ek, birleştirme/bölme ve iç not görünürlüğü korunur. |
+
+PostgreSQL kanıtları ayrıca `make prove-sla`, `make prove-assignment`, `make prove-t3`, `make prove-t4`, `make prove-knowledge`, `make prove-reports` ve `make prove-simulator` ile çalıştırılabilir. Hepsi kendi geçici veritabanını kullanır.
+
+Demo verisini ilk seed durumuna döndürmek için `make reset-demo CONFIRM=yes` kullanılır. **Bu işlem bu Compose projesinin veritabanı volume'ünü siler.** Onaysız `make reset-demo` veri değiştirmeden durur. Sıfırlama sonrası yeniden giriş gerekir; talepler boş, örnek varlıklar ve makaleler hazır olur.
+
+### Tarayıcı kontrolü
+
+Temel elle kontrol: çalışanla talep açın; uzmanla iç not ekleyin; çalışana dönüp notun görünmediğini denetleyin. Bilgi bankasında makale arayın. Lider hesabıyla raporları, simülasyon sayaçlarını, varlık etki görünümünü ve yeni değişiklik formunu açın. CAB'ın ayrıntılı karar ve çakışma yolları otomatik testlerde ayrıca kapsanır.
+
+İsteğe bağlı Playwright betikleri `scripts/browser-*.cjs` içindedir. Playwright 1.50.1 ve Chromium kurulmuş bir ortamda örneğin `COLOR_SCHEME=dark node scripts/browser-smoke.cjs` koyu görünümde iş akışını çalıştırır. Bunlar veri oluşturur; boş ve ayrı bir demo ortamında çalıştırılmalıdır. `BASE_URL`, `DEMO_PASSWORD` ve `BROWSER_ARTIFACT_DIR` değişkenleri desteklenir. `node scripts/browser-theme.cjs` tema seçimi, kalıcılık, sistem değişimi, mobil yerleşim ve kapalı depolama senaryolarını kontrol eder. İsteğe bağlı `AXE_PATH=/path/to/axe.min.js` ile açık/koyu modül ekranlarında kontrast taraması da yapılır; axe-core uygulama paketine eklenmez.
+
+`make verify`, F-1–F-7 özelliklerini, T-1–T-4 çekirdek görevlerini ve simülatörü denetler; herhangi bir kontrol başarısızsa sıfırdan farklı çıkış kodu döndürür. 26 Ekim doğrulamasında 141 PostgreSQL entegrasyon senaryosu, Go race/vet kontrolleri ve arayüz derlemesi başarılıdır. 26 Ekim’de altı otomatik tarayıcı akışı koyu görünümde tekrar geçti; ayrıca açık/koyu tema, kontrast, sistem tercihi ve seçim kalıcılığı denetlendi. Kullanıcıyla temel ekran ve rol/görünürlük kabul kontrolleri de tamamlandı. Yük testinin kapsamı ve ölçümleri: [docs/LOAD-RESULTS.md](docs/LOAD-RESULTS.md).
 
 Boş Docker önbelleği ve boş veritabanıyla ölçülen başlangıç **55,1 saniye**, ardından `make verify` **63,2 saniye** sürdü; 20 kontrolün tamamı PASS verdi. Yöntem ve kapsam: [docs/DELIVERY-CHECKS.md](docs/DELIVERY-CHECKS.md).
 
@@ -99,6 +121,7 @@ API sözleşmesi: [OpenAPI 3.0.3](backend/internal/httpapi/openapi.json); çalı
 Ölçüm koşulları, tekrar çalıştırma komutu ve sınırlar: [docs/INDEXES.md](docs/INDEXES.md). Tam `EXPLAIN (ANALYZE, BUFFERS)` çıktıları: [docs/INDEX-RESULTS.json](docs/INDEX-RESULTS.json). Sonuçlar sentetik veri/sıcak önbellek içindir; genel üretim performansı taahhüdü değildir.
 
 ## Bilinen sınırlar
+
 - E-posta akışı simülatörle çalışır; gerçek SMTP/IMAP bağlantısı yoktur.
 - Bakım planlarının uygulanması uygulama dışında yapılır; uygulama planı, onayı ve sonucu kaydeder.
 - Takım bazlı destek kuyruğu, parola değiştirme, giriş hızı sınırlaması ve süresi dolmuş oturumların periyodik temizliği henüz yoktur.
