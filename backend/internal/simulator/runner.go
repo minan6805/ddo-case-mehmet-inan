@@ -279,89 +279,11 @@ func (r *Runner) Run(ctx context.Context, c Config) (result Run, runErr error) {
 	}
 	baseHash := sha256.Sum256([]byte(c.Namespace()))
 	prefix := "SIM-" + hex.EncodeToString(baseHash[:6])
-	execute := func(step Step) error {
-		check, cancel := context.WithTimeout(ctx, 20*time.Second)
-		defer cancel()
-		key := fmt.Sprintf("%s/step/%d", c.Namespace(), result.CompletedSteps)
-		switch step.Kind {
-		case "asset":
-			a, err := assetService.Create(check, admin, assets.Input{Code: fmt.Sprintf("%s-%d", prefix, step.Index), Name: fmt.Sprintf("Simülasyon %s · %s", c.Name, step.Value), Kind: step.Value, State: "active"}, key)
-			if err != nil {
-				return err
-			}
-			state.Assets[step.Index] = a.ID
-		case "edge":
-			return assetService.Dependency(check, admin, state.Assets[step.Index], state.Assets[step.Aux], true)
-		case "ticket":
-			ticket, err := ticketService.Create(check, employee, step.Input, key)
-			if err != nil {
-				return err
-			}
-			state.Tickets[step.Index] = ticket.ID
-			result.GeneratedTickets++
-		case "email", "email_replay", "reply", "reply_replay":
-			raw, err := mailBytes(plan, step, state.Tickets[step.Index])
-			if err != nil {
-				return err
-			}
-			receipt, err := ticketService.IngestEmail(check, admin, raw)
-			if err != nil {
-				return err
-			}
-			if step.Kind == "email" {
-				if !receipt.CreatedTicket {
-					return ErrConflict
-				}
-				state.Tickets[step.Index] = receipt.TicketID
-				result.GeneratedTickets++
-			} else if receipt.TicketID != state.Tickets[step.Index] {
-				return ErrConflict
-			}
-			if step.Kind == "email_replay" || step.Kind == "reply_replay" {
-				if !receipt.Duplicate {
-					return ErrConflict
-				}
-				result.EmailReplays++
-			}
-			if step.Kind == "reply" {
-				if receipt.CreatedTicket {
-					return ErrConflict
-				}
-				result.ReplyDeliveries++
-			}
-		case "note":
-			_, err := ticketService.AddComment(check, admin, state.Tickets[step.Index], tickets.CommentInput{Body: "Simülasyon iç notu: ilk kontroller tamamlandı.", Visibility: "internal"}, key)
-			return err
-		case "status":
-			ticket, err := ticketService.Get(check, admin, state.Tickets[step.Index])
-			if err != nil {
-				return err
-			}
-			if ticket.Status == step.Value {
-				return nil
-			}
-			expected := map[string]string{"in_progress": "open", "waiting_customer": "in_progress", "resolved": "in_progress", "closed": "resolved"}
-			if ticket.Status != expected[step.Value] {
-				return ErrConflict
-			}
-			_, err = ticketService.UpdateStatus(check, admin, ticket.ID, step.Value)
-			return err
-		case "shift":
-			p := &state.Profiles[step.Index]
-			target := p.Original
-			if step.Value != "restore" {
-				target = shiftInput(p.Original, step.Index)
-			}
-			previous := *p
-			p.Desired = target
-			if err := setProfile(check, routing, admin.ID, previous, step.Index, target); err != nil {
-				return err
-			}
-			result.ShiftSteps++
-		default:
-			return ErrInvalid
-		}
-		return nil
+	executor := stepExecutor{
+		plan: plan, state: &state, result: &result,
+		admin: admin, employee: employee,
+		routing: routing, tickets: ticketService, assets: assetService,
+		assetPrefix: prefix,
 	}
 	for result.CompletedSteps < len(plan.Steps) {
 		step := plan.Steps[result.CompletedSteps]
@@ -386,7 +308,7 @@ func (r *Runner) Run(ctx context.Context, c Config) (result Run, runErr error) {
 			return result, err
 		}
 		previous := result
-		err = execute(step)
+		err = executor.execute(ctx, step)
 		if err == nil && r.afterOperation != nil {
 			err = r.afterOperation(step)
 		}
