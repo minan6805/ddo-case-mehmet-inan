@@ -77,7 +77,7 @@ Teknik kararlar: [DECISIONS.md](DECISIONS.md).
 | `make simulate-email` | Tekrarlanabilir e-posta örnekleri |
 | `make load` | SLA hesaplama ucunda kısa yük testi |
 
-`make verify`, F-1–F-7 özelliklerini, T-1–T-4 çekirdek görevlerini ve simülatörü denetler; herhangi bir kontrol başarısızsa sıfırdan farklı çıkış kodu döndürür. 26 Ekim doğrulamasında 141 PostgreSQL entegrasyon senaryosu, Go race/vet kontrolleri, arayüz derlemesi ve simülatör dahil altı tarayıcı senaryosu (mobil kontroller dahil) başarılıdır. Yük testinin kapsamı ve ölçümleri: [docs/LOAD-RESULTS.md](docs/LOAD-RESULTS.md).
+`make verify`, F-1–F-7 özelliklerini, T-1–T-4 çekirdek görevlerini ve simülatörü denetler; herhangi bir kontrol başarısızsa sıfırdan farklı çıkış kodu döndürür. 26 Ekim doğrulamasında 141 PostgreSQL entegrasyon senaryosu, Go race/vet kontrolleri ve arayüz derlemesi başarılıdır. 25 Ekim’de simülatör dahil altı otomatik tarayıcı senaryosu (mobil kontroller dahil) geçti; 26 Ekim’de kullanıcıyla temel ekran ve rol/görünürlük kabul kontrolleri de tamamlandı. Yük testinin kapsamı ve ölçümleri: [docs/LOAD-RESULTS.md](docs/LOAD-RESULTS.md).
 
 Boş Docker önbelleği ve boş veritabanıyla ölçülen başlangıç **55,1 saniye**, ardından `make verify` **63,2 saniye** sürdü; 20 kontrolün tamamı PASS verdi. Yöntem ve kapsam: [docs/DELIVERY-CHECKS.md](docs/DELIVERY-CHECKS.md).
 
