@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const settings = {};
 if (fs.existsSync('.env')) for (const line of fs.readFileSync('.env', 'utf8').split('\n')) { const m = line.match(/^([A-Z_]+)=(.*)$/); if (m) settings[m[1]] = m[2].replace(/^(['"])(.*)\1$/, '$2'); }
-const base = process.env.BASE_URL || `http://localhost:${process.env.FRONTEND_PORT || settings.FRONTEND_PORT || 3001}`;
+const base = process.env.BASE_URL || `http://localhost:${process.env.FRONTEND_PORT || settings.FRONTEND_PORT || 3000}`;
 const password = process.env.DEMO_PASSWORD || settings.DEMO_PASSWORD || 'DemoDestek2026!';
 async function login(page, name) { await page.goto(base); await page.getByLabel('E-posta', { exact: true }).fill(`${name}@destekmasa.local`); await page.getByLabel('Parola', { exact: true }).fill(password); await page.getByRole('button', { name: 'Giriş yap', exact: true }).click(); await page.getByRole('button', { name: 'Değişiklikler', exact: true }).click(); await page.getByRole('heading', { name: 'Değişiklik yönetimi', exact: true }).waitFor(); }
 (async () => {

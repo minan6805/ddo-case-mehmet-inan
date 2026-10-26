@@ -11,7 +11,7 @@ if (fs.existsSync('.env')) {
     if (match) settings[match[1]] = match[2].trim().replace(/^(['"])(.*)\1$/, '$2');
   }
 }
-const baseURL = process.env.BASE_URL || `http://localhost:${process.env.FRONTEND_PORT || settings.FRONTEND_PORT || '3001'}`;
+const baseURL = process.env.BASE_URL || `http://localhost:${process.env.FRONTEND_PORT || settings.FRONTEND_PORT || '3000'}`;
 const password = process.env.DEMO_PASSWORD || settings.DEMO_PASSWORD || 'DemoDestek2026!';
 const output = process.env.BROWSER_ARTIFACT_DIR || '/tmp/destekmasa-browser-artifacts';
 fs.mkdirSync(output, { recursive: true });

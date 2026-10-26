@@ -285,20 +285,20 @@ Idempotency-Key: change-approve-1
 GET {{baseUrl}}/changes/1/history?limit=20
 
 ### Bilgi bankasında yayımlanmış makale arama (oturum gerekir)
-GET http://localhost:3001/api/knowledge?q=VPN&status=published&limit=20
+GET http://localhost:3000/api/knowledge?q=VPN&status=published&limit=20
 
 ### Uzman/lider/admin ile taslak oluşturma
-POST http://localhost:3001/api/knowledge
+POST http://localhost:3000/api/knowledge
 Content-Type: application/json
 Idempotency-Key: manual-knowledge-example-v1
 
 {"title":"VPN bağlantısı","body":"İnternet bağlantısını kontrol edin. Sorun sürerse hata mesajıyla destek talebi açın.","category":"network","status":"draft","version":0}
 
 ### Makale detayı: numarayı oluşturma yanıtından alın
-GET http://localhost:3001/api/knowledge/1
+GET http://localhost:3000/api/knowledge/1
 
 ### Lider/admin ile yayın: numara ve sürümü GET yanıtına göre ayarlayın
-PUT http://localhost:3001/api/knowledge/1
+PUT http://localhost:3000/api/knowledge/1
 Content-Type: application/json
 
 {"title":"VPN bağlantısı","body":"İnternet bağlantısını kontrol edin. Sorun sürerse hata mesajıyla destek talebi açın.","category":"network","status":"published","version":1}

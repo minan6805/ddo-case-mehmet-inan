@@ -54,7 +54,7 @@ parser.add_argument('--changes', action='store_true')
 parser.add_argument('--t4', action='store_true')
 args = parser.parse_args()
 failed = False
-base = f"http://127.0.0.1:{setting('FRONTEND_PORT', '3001')}"
+base = f"http://127.0.0.1:{setting('FRONTEND_PORT', '3000')}"
 api = f"http://127.0.0.1:{setting('BACKEND_PORT', '8080')}"
 print(f"{'KİMLİK':<16} {'SONUÇ':<8} AÇIKLAMA")
 

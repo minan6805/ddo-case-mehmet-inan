@@ -176,7 +176,7 @@ func TestCrossOriginWritesRejectedBeforeAuth(t *testing.T) {
 	for _, path := range []string{"/auth/login", "/auth/logout"} {
 		t.Run(path, func(t *testing.T) {
 			f := &fakeAuth{}
-			request := httptest.NewRequest("POST", "http://localhost:3001"+path, strings.NewReader(`{"email":"user@example.com","password":"password"}`))
+			request := httptest.NewRequest("POST", "http://localhost:3000"+path, strings.NewReader(`{"email":"user@example.com","password":"password"}`))
 			request.Header.Set("Content-Type", "application/json")
 			request.Header.Set("Origin", "https://attacker.example")
 			response := httptest.NewRecorder()
@@ -190,9 +190,9 @@ func TestCrossOriginWritesRejectedBeforeAuth(t *testing.T) {
 
 func TestSameOriginWriteAllowedWithPort(t *testing.T) {
 	f := &fakeAuth{}
-	request := httptest.NewRequest("POST", "http://localhost:3001/auth/login", strings.NewReader(`{"email":"user@example.com","password":"password"}`))
+	request := httptest.NewRequest("POST", "http://localhost:3000/auth/login", strings.NewReader(`{"email":"user@example.com","password":"password"}`))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Origin", "http://localhost:3001")
+	request.Header.Set("Origin", "http://localhost:3000")
 	response := httptest.NewRecorder()
 	authRouter(f).ServeHTTP(response, request)
 	if response.Code != 200 || !f.called {

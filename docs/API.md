@@ -6,7 +6,7 @@ API dosyayı derleme sırasında gömer; çalışma anında dosya sistemi, haric
 
 ```bash
 curl http://localhost:8080/openapi.json
-curl http://localhost:3001/api/openapi.json
+curl http://localhost:3000/api/openapi.json
 ```
 
 Dosya OpenAPI destekleyen bir Swagger görüntüleyicisine yüklenebilir. Bu proje harici CDN kullanan bir dokümantasyon ekranı içermez. Çalışan istek örnekleri [requests.http](../requests.http) içindedir.

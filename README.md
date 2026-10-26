@@ -13,12 +13,12 @@ docker compose up --build -d --wait
 
 Mevcut `.env` dosyanız varsa ilk komutu atlayın.
 
-- Arayüz: http://localhost:3001
+- Arayüz: http://localhost:3000
 - API sağlık kontrolü: http://localhost:8080/health
 - PostgreSQL yalnızca Compose ağı üzerinden erişilir.
 - Durdurma: `docker compose down`. Veriler Docker volume içinde korunur.
 
-Arayüz geliştirme sırasında 3001 portunu kullanır; teslim için 3000 portuna dönülecektir.
+Arayüz varsayılan olarak teslim portu 3000 üzerinde çalışır. Portlar `.env` üzerinden değiştirilebilir.
 
 ## Demo hesapları
 

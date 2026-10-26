@@ -9,7 +9,7 @@ if (fs.existsSync('.env'))
   }
 const base =
   process.env.BASE_URL ||
-  `http://localhost:${process.env.FRONTEND_PORT || settings.FRONTEND_PORT || 3001}`;
+  `http://localhost:${process.env.FRONTEND_PORT || settings.FRONTEND_PORT || 3000}`;
 (async () => {
   const browser = await chromium.launch({ headless: true });
   const pages = [],
