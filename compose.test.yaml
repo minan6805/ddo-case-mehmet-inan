@@ -16,6 +16,7 @@ services:
       timeout: 3s
       retries: 30
   integration:
+    image: destekmasa-tests-integration
     build:
       context: ./backend
       target: test
