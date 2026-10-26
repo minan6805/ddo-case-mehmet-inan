@@ -67,6 +67,8 @@ Teknik kararlar: [DECISIONS.md](DECISIONS.md).
 
 ## Testler
 
+Demo hesapları, F/T kimlikleri için komut/beklenen sonuç tablosu ve elle deneme adımları: [TESTING.md](TESTING.md).
+
 Önce uygulamayı başlatın. Make, Python 3.9+ ve IANA saat dilimi verisi (`tzdata`) ile aşağıdaki komutlar çalıştırılabilir; veritabanı testleri ayrı bir Docker ortamı kullanır.
 
 | Komut | Kapsam |
