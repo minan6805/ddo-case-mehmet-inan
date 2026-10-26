@@ -7,11 +7,13 @@ DestekMasa, bir işyerindeki IT destek taleplerini yönetmek için geliştirilen
 Docker ve Docker Compose gerekir. Yerel Go veya Node.js kurulumu gerekmez; ilk derlemede internet bağlantısı gerekir.
 
 ```bash
+git clone https://github.com/minan6805/ddo-case-mehmet-inan.git
+cd ddo-case-mehmet-inan
 cp .env.example .env
 docker compose up --build -d --wait
 ```
 
-Mevcut `.env` dosyanız varsa ilk komutu atlayın.
+Depo zaten bilgisayarınızdaysa clone/cd adımlarını; mevcut `.env` dosyanız varsa kopyalama adımını atlayın.
 
 - Arayüz: http://localhost:3000
 - API sağlık kontrolü: http://localhost:8080/health
@@ -84,7 +86,7 @@ Teknik kararlar: [DECISIONS.md](DECISIONS.md).
 | Kimlik | Komut | Beklenen davranış |
 |---|---|---|
 | F-1 | `make verify-tickets` | Talep oluşur; durum akışı çalışır; başka çalışanın kaydı reddedilir. |
-| F-2 / T-1 | `make verify-sla` | İş saatleri/tatiller hesaplanır; beklemede çözüm süresi durur; uyarı ve ihlal tekilleşir. |
+| F-2 / T-1 | `make verify-sla` + `make prove-sla` | İş saatleri/tatiller hesaplanır; beklemede çözüm süresi durur; uyarı ve ihlal tekilleşir. |
 | F-3 / T-2 | `make verify-assignment` | Uygun uzman seçilir; eşzamanlı istekler kapasiteyi aşmaz; izinli uzmanın işi yeniden değerlendirilir. |
 | F-4 | `make verify-knowledge` | Uzman taslağı çalışanlardan saklanır; lider yayını ve arama çalışır. |
 | F-5 / F-6 / T-4 | `make verify-t4` | Döngülü graf sonlu hesaplanır; bağımsız CAB onayı ve ortak etki/pencere çakışması denetlenir. |
@@ -120,6 +122,34 @@ API sözleşmesi: [OpenAPI 3.0.3](backend/internal/httpapi/openapi.json); çalı
 
 İlk planda `Index Scan tickets_requester_id_desc_idx` doğrudan 21 kayıt getirir (30 shared hit); indeks olmadan 180 aday kayıt sıralanır (210 shared hit). İkinci planda `Bitmap Index Scan tickets_created_category_idx` 137 eşleşmeyi bulur (üst düğüm 144 shared hit); bu indeks olmadan alternatif indeks ve kategori filtresi kullanılır (1764 shared hit).
 
+`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)` çıktılarındaki ilgili indeks düğümlerinden seçilen alanlar aşağıdadır. Bunlar yeni ölçüm değil, yukarıdaki deneyin kayıtlı planlarından alıntıdır; süre tablosu tüm sorgunun execution time değeridir.
+
+```json
+{
+  "Node Type": "Index Scan",
+  "Index Name": "tickets_requester_id_desc_idx",
+  "Actual Startup Time": 0.037,
+  "Actual Total Time": 0.096,
+  "Actual Rows": 21,
+  "Actual Loops": 1,
+  "Index Cond": "((requester_id = 42) AND (id < 180000))",
+  "Shared Hit Blocks": 27
+}
+```
+
+```json
+{
+  "Node Type": "Bitmap Index Scan",
+  "Index Name": "tickets_created_category_idx",
+  "Actual Startup Time": 0.049,
+  "Actual Total Time": 0.05,
+  "Actual Rows": 137,
+  "Actual Loops": 1,
+  "Index Cond": "((created_at >= '2026-09-30 21:00:00+00'::timestamp with time zone) AND (created_at < '2026-10-01 21:00:00+00'::timestamp with time zone) AND (category_code = 'network'::text))",
+  "Shared Hit Blocks": 7
+}
+```
+
 Ölçüm koşulları, tekrar çalıştırma komutu ve sınırlar: [docs/INDEXES.md](docs/INDEXES.md). Tam `EXPLAIN (ANALYZE, BUFFERS)` çıktıları: [docs/INDEX-RESULTS.json](docs/INDEX-RESULTS.json). Sonuçlar sentetik veri/sıcak önbellek içindir; genel üretim performansı taahhüdü değildir.
 
 ## Bilinen sınırlar
@@ -128,6 +158,58 @@ API sözleşmesi: [OpenAPI 3.0.3](backend/internal/httpapi/openapi.json); çalı
 - Bakım planlarının uygulanması uygulama dışında yapılır; uygulama planı, onayı ve sonucu kaydeder.
 - Takım bazlı destek kuyruğu, parola değiştirme, giriş hızı sınırlaması ve süresi dolmuş oturumların periyodik temizliği henüz yoktur.
 - SLA takvimindeki tatiller 2026 içindir; sonraki yıllar ayrıca eklenmelidir. Demo uzmanlarının vardiyaları hafta sonu da açıktır; SLA iş takvimi bundan bağımsızdır.
+
+## Doğrulama Soruları
+
+### 1. En zorlandığım görev ve alternatifler
+
+En çok zorlandığım konu otomatik atamadaki kilit mantığını ve eşzamanlı isteklerin aynı son kapasiteyi nasıl kullanabildiğini anlamaktı. İki isteğin de boş kapasiteyi okuyup sonra atama yapması limiti aşabilir; yalnızca yükü saymak yeterli değildir.
+
+Profil başına kilit ve yeniden deneme daha fazla paralellik sağlayabilirdi, fakat birden çok adayın puanlanmasını ve kilit sırasını karmaşıklaştırır. Bu proje ölçeğinde atama kararlarını tek PostgreSQL transaction kilidinde sıraya koyduk; aday profil satırlarını da kilitleyip yazımdan önce kapasiteyi yeniden kontrol ediyoruz. Talep, atama geçmişi ve audit birlikte tamamlanıyor. Karşılığında yoğun trafikte atamalar birbirini bekleyebilir. Tasarımın ayrıntısı ADR-011 içindedir.
+
+### 2. Bilinen bir sınırlama
+
+Tek global atama kilidi, farklı uzmanlara gidecek işlerin de sırayla değerlendirilmesine neden olur. Çok yoğun eşzamanlı trafikte tutarlılık korunurken bekleme süresi artabilir. Çoklu takım/havuz bazında kilitleme bu sınırı azaltabilecek bir sonraki tasarımdır; mevcut sürümde uygulanmadı. Ayrıca takvim değişiklikleri bütün geçmişi tek transaction içinde yeniden hesaplar; büyük veri hacminde süre sınırına takılabilir ve bu durumda değişiklik geri alınır.
+
+### 3. İki indeks ve ölçüm farkları
+
+`tickets_requester_id_desc_idx`, çalışanın kendi taleplerini `requester_id` ve `id < before` ile azalan ID sırasında listeleme sorgusu içindir. İndeksli medyan 0,173 ms; yalnız bu indeks kaldırıldığında 0,977 ms ölçüldü.
+
+`tickets_created_category_idx`, açılış tarihi ve kategoriyle rapor grubunu seçen sorgu içindir. İndeksli medyan 0,551 ms; yalnız bu indeks kaldırıldığında 5,064 ms ölçüldü. Bunlar 200.000 sentetik talepte, sıcak önbellekte yedi çalıştırmanın medyanlarıdır. Diğer indeksler açıktır; tüm indekslerin kaldırıldığı deney veya üretim kapasitesi garantisi değildir. Plan alıntıları yukarıda, tam sonuçlar [INDEX-RESULTS.json](docs/INDEX-RESULTS.json) içindedir. Tekrar üretme: `make measure-indexes`.
+
+### 4. Yapay zekâ yardımıyla üretilen kodda düzeltilen örnek
+
+Projeyi yapay zekâ desteğiyle geliştirdim. İncelemede düzeltilen somut örnek, PostgreSQL kanıtlarının test ortamını paylaşmasıydı. Önceki betik sabit veya ortam değişkeninden etkilenebilen Compose proje adını kullanıyordu. İki test aynı anda çalışınca biri temizlenirken diğerinin veritabanını kapatabiliyordu.
+
+Önce:
+
+```sh
+docker compose -f compose.test.yaml up --build --abort-on-container-exit --exit-code-from integration
+# Çıkış temizliği:
+docker compose -f compose.test.yaml down --volumes
+```
+
+Sonra, her çağrıda aynı benzersiz ad başlangıç ve temizlikte kullanıldı:
+
+```sh
+test_project="destekmasa-tests-$(date +%s)-$$"
+docker compose -p "$test_project" -f compose.test.yaml up --build --abort-on-container-exit --exit-code-from integration
+# Çıkış temizliği:
+docker compose -p "$test_project" -f compose.test.yaml down --volumes
+```
+
+Böylece uygulamanın `COMPOSE_PROJECT_NAME` ayarı test projesini değiştiremez ve eşzamanlı kanıtlar birbirinin ortamını temizlemez. Uygulama proje adı dışarıdan verilerek iki kanıt birlikte çalıştırıldı; ikisi de geçti ve uygulama çalışmaya devam etti. Gerçek önce/sonra değişikliği: [30d5d19](https://github.com/minan6805/ddo-case-mehmet-inan/commit/30d5d19f51b726789cb762fe63946a5dfdcde0d9). Bu, yalnız derlemenin geçmesinin test altyapısının güvenli olduğunu kanıtlamadığını gösterir.
+
+### 5. SLA motorunun doğruluk kanıtı
+
+`make verify-sla`, çalışan API üzerinden iş takvimi hesabını, ilk kabulü, bekleme/devam ve çözüm akışını dener. 26 Ekim çalıştırmasında ilgili çıktı:
+
+```text
+F-2              PASS     Doğrulandı
+T-1              PASS     Doğrulandı
+```
+
+Kalıcı uyarı/ihlal/eskalasyon, tekilleştirme, takvim değişiminde yeniden hesaplama ve transaction davranışı için `make prove-sla` kullanılır; bu hedef ayrı PostgreSQL ortamında tüm entegrasyon paketlerini çalıştırır. SLA grubunda 11 alt senaryo vardır. Saf hesap modülü ayrıca bağımsız, dakika sayan referansla 140 tarih/bütçe örneğinde karşılaştırılır. Cuma/hafta sonu, tam ve yarım tatil, bekleme/devam, yeniden açılma ve saat dilimi sınırları kapsanır. Preview API'sinin doğru sonucu tek başına kalıcı eskalasyon kanıtı sayılmaz. Genel `make verify` son çalıştırmasında 20 kimlik ve toplam 141 PostgreSQL alt senaryosu başarılıdır.
 
 ## Teknik belgeler
 

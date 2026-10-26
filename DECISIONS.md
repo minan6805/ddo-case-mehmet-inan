@@ -48,7 +48,7 @@
 
 **Karar:** `compose.test.yaml` ayrı proje ve tmpfs PostgreSQL başlatır. Test kendi rastgele şemasını oluşturup kaldırır; `INTEGRATION_DATABASE_URL` verilmezse PostgreSQL testi açıkça SKIP olur.
 
-**Sonuç:** Yerel demo korunur; entegrasyon testi için Docker gerekir. Test komutu PostgreSQL hatalarını başarısız çıkış koduyla iletir. `make test-integration` Go yarış algılayıcısını da açar; bu, T-2 kapasite yarışının henüz kanıtlandığı anlamına gelmez.
+**Sonuç:** Yerel demo korunur; entegrasyon testi için Docker gerekir. Test komutu PostgreSQL hatalarını başarısız çıkış koduyla iletir. `make test-integration` Go yarış algılayıcısını da açar. Kapasite yarışı ayrıca ADR-011 kapsamında gerçek eşzamanlı HTTP istekleriyle kanıtlanır; race detector tek başına bu iş kuralının kanıtı değildir.
 
 ## ADR-006 — Talep oluştururken tekrar isteği koruma
 
@@ -66,7 +66,7 @@
 
 **Karar:** Çalışan/varlık yöneticisi kendi taleplerini; uzman/lider/admin ortak kuyruğu görür. Talep sahibi istemci girdisinden alınmaz, doğrulanmış oturumdan gelir. Durum geçişleri sunucudaki açık bir tabloda doğrulanır; satır kilidi altında güncellenir ve audit yazılır. Liste `id DESC`, sonraki sayfa `id < before`; bir fazla kayıtla sonraki sayfanın varlığı belirlenir.
 
-**Sonuç:** Doğrudan API isteğiyle sahiplik/rol aşılamaz. Liste için `(requester_id,id DESC)` ve `(status,id DESC)` indeksleri var; performans ölçümleri henüz yok. İş kuyruğu henüz takım/atanan uzmanla sınırlandırılmıyor; bu T-2 ile genişletilecek. Kapalı talep yeniden açılmaz; çözülen talep işleme dönebilir. SLA takibi bu akışa sonraki aşamada bağlanacak.
+**Sonuç:** Doğrudan API isteğiyle sahiplik/rol aşılamaz. Liste için `(requester_id,id DESC)` ve `(status,id DESC)` indeksleri var; iki gerçek sorgunun ölçümleri docs/INDEXES.md içindedir. Ortak destek kuyruğunda bana atananlar/atama bekleyenler filtreleri vardır; filtreler uzmanlar arasında erişim sınırı oluşturmaz. Çoklu takım ayrımı yoktur. Kapalı talep yeniden açılmaz; çözülen talep işleme dönebilir. SLA ve atama durum akışına bağlıdır.
 
 ## ADR-008 — Durum geçmişinden iş süresi hesaplama
 
@@ -76,7 +76,7 @@
 
 **Karar:** Değişikliklerin zaman çizelgesi ve başlangıç hedef kopyası saklanır. Saf hesap modülü yerel gün pencerelerinde ilerler; hafta sonu/tam/yarım tatili dışlar. İlk işleme alma kabul yanıtını tamamlar. Bekleme ve çözülmüş kalma aralıkları çözüm sayacına eklenmez. Çözülmüşten işleme dönünce aynı bütçe sürer.
 
-**Sonuç:** Hesap tek bir saate bağımlı değildir; testte kontrollü zaman ve bağımsız referansla kanıtlanır. SLA tarihleri GET sırasında güncel hesaplanır; projeksiyon ve olay kaydı ayrı olarak transaction'da tutulur. İlk yanıt tanımı işleme alma/kabuldür; gerçek metin/e-posta teslimi T-3'e kalır.
+**Sonuç:** Hesap tek bir saate bağımlı değildir; testte kontrollü zaman ve bağımsız referansla kanıtlanır. SLA tarihleri GET sırasında güncel hesaplanır; projeksiyon ve olay kaydı ayrı olarak transaction'da tutulur. İlk yanıt tanımı işleme alma/kabuldür. Gelen e-posta ve yorumlar ADR-013/014 kapsamında işlenir; dışarıya e-posta teslimi ölçülmez.
 
 ## ADR-009 — Takvim yeniden hesaplama ve politika kopyası
 
