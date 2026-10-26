@@ -14,6 +14,7 @@ import { Changes } from './Changes';
 import { Knowledge } from './Knowledge';
 import { Reports } from './Reports';
 import { Simulation } from './Simulation';
+import { ThemeMenu } from './ThemeMenu';
 
 type Status = 'loading' | 'ready' | 'error';
 const roleLabels: Record<string, string> = {
@@ -138,7 +139,6 @@ function Login({ onLogin }: { onLogin: (user: User) => void }) {
 function Account({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [adminResult, setAdminResult] = useState('');
   async function logout() {
     setBusy(true);
     setError('');
@@ -155,23 +155,6 @@ function Account({ user, onLogout }: { user: User; onLogout: () => void }) {
       setBusy(false);
     }
   }
-  async function checkAdmin() {
-    setBusy(true);
-    setError('');
-    setAdminResult('');
-    try {
-      const result = await request<{ message: string }>('/admin/overview');
-      setAdminResult(result.message);
-    } catch (error) {
-      if (error instanceof APIError && error.status === 401) {
-        onLogout();
-        return;
-      }
-      setError(errorMessage(error, 'Kontrol yapılamadı.'));
-    } finally {
-      setBusy(false);
-    }
-  }
   return (
     <section className="status-card" aria-labelledby="account-title">
       <div className="card-heading">
@@ -182,16 +165,6 @@ function Account({ user, onLogout }: { user: User; onLogout: () => void }) {
       </h2>
       <p className="account-email">{user.email}</p>
 
-      {user.role === 'admin' && (
-        <button disabled={busy} onClick={checkAdmin}>
-          Yönetici erişimini kontrol et
-        </button>
-      )}
-      {adminResult && (
-        <p className="success" role="status">
-          {adminResult}
-        </p>
-      )}
       {error && (
         <p className="failure" role="alert">
           {error}
@@ -204,10 +177,51 @@ function Account({ user, onLogout }: { user: User; onLogout: () => void }) {
   );
 }
 
+type View =
+  | 'tickets'
+  | 'assets'
+  | 'changes'
+  | 'knowledge'
+  | 'reports'
+  | 'simulation';
+const inventoryRoles = ['specialist', 'team_lead', 'asset_manager', 'admin'];
+const managerRoles = ['team_lead', 'admin'];
+const modules: { id: View; label: string; roles?: string[] }[] = [
+  { id: 'tickets', label: 'Talepler' },
+  { id: 'knowledge', label: 'Bilgi bankası' },
+  { id: 'assets', label: 'Varlıklar', roles: inventoryRoles },
+  { id: 'changes', label: 'Değişiklikler', roles: inventoryRoles },
+  { id: 'reports', label: 'Raporlar', roles: managerRoles },
+  { id: 'simulation', label: 'Simülasyon', roles: managerRoles },
+];
+
+function ModuleContent({
+  view,
+  user,
+  onExpired,
+}: {
+  view: View;
+  user: User;
+  onExpired: () => void;
+}) {
+  switch (view) {
+    case 'simulation':
+      return <Simulation onExpired={onExpired} />;
+    case 'reports':
+      return <Reports onExpired={onExpired} />;
+    case 'knowledge':
+      return <Knowledge user={user} onExpired={onExpired} />;
+    case 'changes':
+      return <Changes user={user} onExpired={onExpired} />;
+    case 'assets':
+      return <Assets user={user} onExpired={onExpired} />;
+    case 'tickets':
+      return <Tickets user={user} onExpired={onExpired} />;
+  }
+}
+
 function App() {
-  const [view, setView] = useState<
-    'tickets' | 'assets' | 'changes' | 'knowledge' | 'reports' | 'simulation'
-  >('tickets');
+  const [view, setView] = useState<View>('tickets');
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Status>('loading');
   const [attempt, setAttempt] = useState(0);
@@ -243,7 +257,10 @@ function App() {
         <a className="brand" href="/">
           D<span>DestekMasa</span>
         </a>
-        <span className="header-label">BT yardım masası</span>
+        <div className="header-actions">
+          <span className="header-label">BT yardım masası</span>
+          <ThemeMenu />
+        </div>
       </header>
       <main>
         <p className="eyebrow">BT DESTEK PORTALINIZ</p>
@@ -269,70 +286,28 @@ function App() {
             <>
               <Account user={user} onLogout={expireSession} />
               <nav className="module-nav" aria-label="Modüller">
-                <button
-                  className={view === 'tickets' ? '' : 'secondary'}
-                  onClick={() => setView('tickets')}
-                >
-                  Talepler
-                </button>
-                <button
-                  className={view === 'knowledge' ? '' : 'secondary'}
-                  onClick={() => setView('knowledge')}
-                >
-                  Bilgi bankası
-                </button>
-                {['specialist', 'team_lead', 'asset_manager', 'admin'].includes(
-                  user.role,
-                ) && (
-                  <>
+                {modules
+                  .filter(
+                    (module) =>
+                      !module.roles || module.roles.includes(user.role),
+                  )
+                  .map((module) => (
                     <button
-                      className={view === 'assets' ? '' : 'secondary'}
-                      onClick={() => setView('assets')}
+                      key={module.id}
+                      className={view === module.id ? '' : 'secondary'}
+                      aria-current={view === module.id ? 'page' : undefined}
+                      onClick={() => setView(module.id)}
                     >
-                      Varlıklar
+                      {module.label}
                     </button>
-                    <button
-                      className={view === 'changes' ? '' : 'secondary'}
-                      onClick={() => setView('changes')}
-                    >
-                      Değişiklikler
-                    </button>
-                  </>
-                )}
-                {['team_lead', 'admin'].includes(user.role) && (
-                  <button
-                    className={view === 'reports' ? '' : 'secondary'}
-                    onClick={() => setView('reports')}
-                  >
-                    Raporlar
-                  </button>
-                )}
-                {['team_lead', 'admin'].includes(user.role) && (
-                  <button
-                    className={view === 'simulation' ? '' : 'secondary'}
-                    onClick={() => setView('simulation')}
-                  >
-                    Simülasyon
-                  </button>
-                )}
+                  ))}
               </nav>
-              {view === 'simulation' ? (
-                <Simulation key={user.id} onExpired={expireSession} />
-              ) : view === 'reports' ? (
-                <Reports key={user.id} onExpired={expireSession} />
-              ) : view === 'knowledge' ? (
-                <Knowledge
-                  key={user.id}
-                  user={user}
-                  onExpired={expireSession}
-                />
-              ) : view === 'changes' ? (
-                <Changes key={user.id} user={user} onExpired={expireSession} />
-              ) : view === 'assets' ? (
-                <Assets key={user.id} user={user} onExpired={expireSession} />
-              ) : (
-                <Tickets key={user.id} user={user} onExpired={expireSession} />
-              )}
+              <ModuleContent
+                key={user.id}
+                view={view}
+                user={user}
+                onExpired={expireSession}
+              />
             </>
           ) : (
             <Login onLogin={setUser} />
