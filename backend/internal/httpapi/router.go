@@ -68,6 +68,7 @@ func newRouter(db Pinger, service Authenticator, options AuthOptions, ticketServ
 func NewServicesRouter(services Services) http.Handler {
 	db, service, options, ticketService, engine := services.Database, services.Authentication, services.AuthOptions, services.Tickets, services.SLA
 	mux := http.NewServeMux()
+	registerOpenAPI(mux)
 	if service != nil {
 		registerAuth(mux, service, options)
 		if services.Simulator != nil {

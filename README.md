@@ -69,6 +69,7 @@ Teknik kararlar: [DECISIONS.md](DECISIONS.md).
 |---|---|
 | `make smoke` | Temel servis bağlantıları |
 | `make lint` | Go biçimi ve golangci-lint |
+| `make verify-openapi` | OpenAPI sözleşmesinin biçim ve referans kontrolü |
 | `make test` | Go testleri |
 | `make test-integration` | Gerçek PostgreSQL ile entegrasyon testleri |
 | `make verify` | Uygulama kontrolleri ve tamamlanmamış gereksinimler |
@@ -80,11 +81,11 @@ Teknik kararlar: [DECISIONS.md](DECISIONS.md).
 
 GitHub Actions, her gönderimde Go build/lint/test, arayüz derlemesi ve Docker üzerinden genel doğrulamayı çalıştırır. Ayrıntılar: [docs/CI.md](docs/CI.md).
 
-API istek örnekleri: [requests.http](requests.http).
+API sözleşmesi: [OpenAPI 3.0.3](backend/internal/httpapi/openapi.json); çalışan API’den `GET /openapi.json` ile de alınabilir. Kullanım ve doğrulama: [docs/API.md](docs/API.md). İstek örnekleri: [requests.http](requests.http).
 
 ## Kalan işler ve sınırlar
 
-- OpenAPI, indeks ölçümleri ve son teslim kontrolleri.
+- İndeks ölçümleri ve son teslim kontrolleri.
 - E-posta akışı simülatörle çalışır; gerçek SMTP/IMAP bağlantısı yoktur.
 - Bakım planlarının uygulanması uygulama dışında yapılır; uygulama planı, onayı ve sonucu kaydeder.
 - Takım bazlı destek kuyruğu, parola değiştirme, giriş hızı sınırlaması ve süresi dolmuş oturumların periyodik temizliği henüz yoktur.

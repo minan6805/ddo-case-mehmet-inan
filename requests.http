@@ -1,6 +1,10 @@
 @baseUrl = http://localhost:8080
 @demoPassword = DemoDestek2026!
 
+### OpenAPI sözleşmesi — oturum gerektirmez
+GET {{baseUrl}}/openapi.json
+Accept: application/json
+
 ### API ve gerçek veritabanı sağlık kontrolü
 GET {{baseUrl}}/health
 Accept: application/json

@@ -1,4 +1,4 @@
-.PHONY: lint simulate verify-simulator prove-simulator verify-reports prove-reports verify-knowledge prove-knowledge up down logs smoke verify test test-integration verify-auth verify-tickets verify-sla prove-sla verify-assignment prove-assignment verify-comments verify-email verify-t3 prove-t3 simulate-email prove-email load reset-demo verify-assets prove-assets verify-changes verify-t4 prove-t4
+.PHONY: verify-openapi lint simulate verify-simulator prove-simulator verify-reports prove-reports verify-knowledge prove-knowledge up down logs smoke verify test test-integration verify-auth verify-tickets verify-sla prove-sla verify-assignment prove-assignment verify-comments verify-email verify-t3 prove-t3 simulate-email prove-email load reset-demo verify-assets prove-assets verify-changes verify-t4 prove-t4
 
 up:
 	docker compose up --build -d --wait
@@ -106,3 +106,7 @@ prove-simulator:
 # Keep this version aligned with the GitHub Actions lint step.
 lint:
 	docker run --rm -v "$$(pwd)/backend:/app" -w /app golangci/golangci-lint:v2.1.6 sh -ec 'unformatted_files="$$(gofmt -l .)"; if [ -n "$$unformatted_files" ]; then printf "%s\n" "$$unformatted_files"; exit 1; fi; golangci-lint run'
+
+# Validator dependencies exist only in the disposable tools container.
+verify-openapi:
+	docker run --rm -v "$$(pwd)/backend/internal/httpapi/openapi.json:/spec/openapi.json:ro" -v "$$(pwd)/scripts/validate-openapi.py:/tools/validate-openapi.py:ro" python:3.13-alpine sh -ec 'pip install --quiet --root-user-action=ignore openapi-spec-validator==0.7.2; python /tools/validate-openapi.py /spec/openapi.json'
